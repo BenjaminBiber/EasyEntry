@@ -1,0 +1,131 @@
+@using System.Text.RegularExpressions
+@using doorOpener.Models
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        Gerät hinzufügen
+    </TitleContent>
+    <DialogContent>
+        <MudForm>
+            <MudStack>
+                <MudTextField @bind-Value="groupToSaveName" Label="Gruppenname"/>
+                <MudSelect T="string" Label="Geräte zur Gruppe hinzufügen" MultiSelection="true" @bind-Value="selectedDevices">
+                    @foreach (var state in DeviceNames )
+                    {
+                        <MudSelectItem T="string" Value="@state">@state</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveGroup">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+
+    private void Cancel() => MudDialog.Cancel();
+    private string selectedDevices = "";
+    private string groupToSaveName = "";
+    private string deviceToSaveURL = "";
+    private Dictionary<string, List<Device>> Devices = [];
+    private List<string> DeviceNames = [];
+    
+    protected override async Task OnInitializedAsync()
+    {
+      Devices = Device.GetAllDevicesFromJson();
+      GetDeviceNames();
+    }
+
+    private void GetDeviceNames()
+    {
+        foreach (var key in Devices.Keys)
+        {
+            foreach (var device in Devices[key])
+            {
+                DeviceNames.Add(device.Name);
+            }
+        }
+    }
+    
+    private async Task SaveGroup()
+    {
+        var deviceParts = selectedDevices.Split(",");
+
+        for (int i = 0; i < deviceParts.Length; i++)
+        {
+            deviceParts[i] = deviceParts[i].Trim();
+        }
+        
+        if (deviceParts.Any(x => !DeviceNames.Contains(x)))
+        {
+            Snackbar.Add("Ein oder mehrere Geräte sind nicht vorhanden", Severity.Error);
+            return;
+        }
+
+        if (!String.IsNullOrEmpty(groupToSaveName))
+        {
+            if(Devices.ContainsKey(groupToSaveName))
+            {
+                Snackbar.Add("Gruppe existiert bereits", Severity.Error);
+                return;
+            }
+            else
+            {
+                var devicesToMove = new List<Device>();
+                var singleDevices = new List<Device>();
+                foreach (var list in Devices.Values)
+                {
+                    singleDevices.AddRange(list);
+                }
+                foreach(var name in deviceParts)
+                {
+                    var device = singleDevices.Find(x => x.Name == name);
+                    if (device != null)
+                    {
+                        devicesToMove.Add(device);
+                    }
+                }
+                
+                // Neue Liste für Geräte, die entfernt werden sollen
+                var devicesToRemove = new List<Device>();
+
+                foreach (var list in Devices.Values)
+                {
+                    if(list.Any(x => devicesToMove.Contains(x)))
+                    {
+                        devicesToRemove.AddRange(list.Where(device => devicesToMove.Contains(device)));
+                    }
+                }
+
+                // Nach der Iteration entfernen
+                foreach (var list in Devices.Values)
+                {
+                    foreach (var device in devicesToRemove)
+                    {
+                        list.Remove(device);
+                    }
+                }
+                Devices.Add(groupToSaveName, devicesToMove);
+                if(Devices.Any(x => x.Value.Count == 0))
+                {
+                    Devices.Remove(Devices.First(x => x.Value.Count == 0).Key);
+                }
+                Device.SaveDevicesToJSON(Devices);
+                Submit();   
+            }
+        }
+        else
+        {
+            Snackbar.Add("Gruppenname darf nicht leer sein", Severity.Error);
+        }
+    }
+
+}

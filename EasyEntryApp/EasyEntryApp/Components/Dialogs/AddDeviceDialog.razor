@@ -1,0 +1,123 @@
+@using System.Text.RegularExpressions
+@using doorOpener.Models
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        Gerät hinzufügen
+    </TitleContent>
+    <DialogContent>
+        <MudForm>
+            <MudStack Row="true">
+                <MudTextField @bind-Value="deviceToSaveURL" Label="URL"/>
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveDevice">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private string deviceToSaveName = "";
+    private DeviceStatus deviceToSaveStatus = DeviceStatus.Neutral;
+    private string deviceToSaveURL = "";
+    private Dictionary<string, List<Device>> Devices = [];
+    private bool scanQRCode = false;
+    
+    protected override async Task OnInitializedAsync()
+    {
+      Devices = Device.GetAllDevicesFromJson();
+    }
+
+    async Task ScanQRCode(string result)
+    {
+  
+        if (String.IsNullOrEmpty(result))
+        {
+            Snackbar.Add("Kein QR-Code erkannt!", Severity.Error);
+            return;
+        }
+        if(!String.IsNullOrEmpty(result))
+        {
+            if (Regex.IsMatch(result, "^(?:(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)$\n"))
+            {
+                deviceToSaveURL = result;
+                SaveDevice();
+            }
+            else
+            {
+                Snackbar.Add("Kein gültiger QR-Code!", Severity.Error);
+            }
+        }
+        scanQRCode = false;
+    }
+    
+    private async Task SaveDevice()
+    {
+        if (!string.IsNullOrEmpty(deviceToSaveURL))
+        {
+            var devices = Device.GetAllDevicesFromJson();
+            if(devices.Values.Any(x => x.Any(y => y.DeviceURL == deviceToSaveURL)))
+            {
+                Snackbar.Add("Gerät ist bereits vorhanden!", Severity.Error);
+                return;
+            }
+            var response = await Device.TestConnection(deviceToSaveURL);
+            if (response.IsOnline)
+            {
+                if (!String.IsNullOrEmpty(response.Name))
+                {
+
+                    if (Regex.IsMatch(deviceToSaveURL, "^(?:(?:25[0-5]|2[0-4]\\d|1?\\d{1,2})(?:\\.(?!$)|$)){4}$"))
+                    {
+                        var deviceToSave = new Device(response.Name, DeviceStatus.Neutral, deviceToSaveURL);
+                        Device.SaveDeviceToJSON(new KeyValuePair<string, Device>("ungruppiert", deviceToSave));
+                        Submit();
+                    }
+                    else
+                    {
+                        Snackbar.Add("URL entspricht nicht den Richtlinien!", Severity.Error);
+                    }
+
+
+                }
+                else if (String.IsNullOrEmpty(response.Name) && !string.IsNullOrEmpty(deviceToSaveName))
+                {
+                    if (Regex.IsMatch(deviceToSaveURL, "^(?:(?:25[0-5]|2[0-4]\\d|1?\\d{1,2})(?:\\.(?!$)|$)){4}$"))
+                    {
+                        var deviceToSave = new Device(deviceToSaveName, DeviceStatus.Neutral, deviceToSaveURL);
+                        Device.SaveDeviceToJSON(new KeyValuePair<string, Device>("ungruppiert", deviceToSave));
+                        Submit();
+                    }
+                    else
+                    {
+                        Snackbar.Add("URL entspricht nicht den Richtlinien!", Severity.Error);
+                    }
+                }
+                else
+                {
+                    Snackbar.Add("Gerät hat noch keinen Namen, geben Sie einen Namen ein", Severity.Info);
+                }
+
+            }
+            else
+            {
+                Snackbar.Add("URL nicht erreichbar!", Severity.Error);
+            }
+        }
+        else
+        {
+            Snackbar.Add("Alle Felder müssen ausgefüllt werden!", Severity.Error);
+        }
+
+    }
+
+}

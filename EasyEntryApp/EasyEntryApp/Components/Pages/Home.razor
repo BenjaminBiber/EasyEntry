@@ -1,0 +1,59 @@
+﻿@page "/"
+@using EasyEntryApp.Components.Dialogs
+@using doorOpener.Models
+@using Size = Microsoft.Maui.Graphics.Size
+@using EasyEntryApp.Components.DoorOpenerComponents
+@using MudBlazor.Services
+@inject IDialogService DialogService
+@inject IBrowserViewportService BrowserViewportService
+@implements IAsyncDisposable
+@implements IBrowserViewportObserver
+
+@if (Devices.Any())
+{
+    @foreach (var kvpdevice in Devices)
+    {
+        <DoorControlGroup BreakPoint="currentBreakPoint" DeviceGroup="@kvpdevice"></DoorControlGroup>
+    }
+}
+else
+{
+    <MudAlert Severity="Severity.Info" Class="mt-3 ml-4 mr-4">Aktuell noch keine Geräte vorhanden</MudAlert>
+}
+
+
+
+@code{
+
+    public Dictionary<string, List<Device>> Devices = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        //DeleteAllDevices();
+        Devices = Device.GetAllDevicesFromJson();
+    }
+    
+    private void DeleteAllDevices()
+    {
+        File.WriteAllText(Device.FileName, "");
+        Devices = Device.GetAllDevicesFromJson();
+    }
+    
+    private Breakpoint currentBreakPoint;
+
+    public async ValueTask DisposeAsync() => await BrowserViewportService.UnsubscribeAsync(this);
+
+    Guid IBrowserViewportObserver.Id { get; } = Guid.NewGuid();
+
+    ResizeOptions IBrowserViewportObserver.ResizeOptions { get; } = new()
+    {
+        ReportRate = 250,
+        NotifyOnBreakpointOnly = true
+    };
+
+    Task IBrowserViewportObserver.NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs browserViewportEventArgs)
+    {
+        currentBreakPoint = browserViewportEventArgs.Breakpoint;
+        return InvokeAsync(StateHasChanged);
+    }
+}

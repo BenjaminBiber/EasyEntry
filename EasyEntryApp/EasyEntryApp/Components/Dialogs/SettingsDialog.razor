@@ -1,0 +1,45 @@
+@using System.Data
+@using System.Text.RegularExpressions
+@using doorOpener.Models
+@using Microsoft.AspNetCore.Components.Rendering
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        Einstellungen
+    </TitleContent>
+    <DialogContent>
+        <div style="display: flex; justify-content: center; align-items: center; border: 2px solid var(--mud-palette-primary); margin: 3%; border-radius: 5px">
+            <MudStack Row="true" AlignItems="AlignItems.Center">
+                <MudText>Meldungen Anzeigen</MudText>
+                <MudSwitch @bind-Value="showSnackBar" ThumbIcon="@(showSnackBar == true ? Icons.Material.Filled.Done : Icons.Material.Filled.Close)" ThumbIconColor="@(showSnackBar == true ? Color.Success : Color.Error)"></MudSwitch>
+            </MudStack>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveSetting">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+
+    private void Cancel() => MudDialog.Cancel();
+    
+    private bool  showSnackBar = true;
+    
+    protected override void OnInitialized()
+    {
+        showSnackBar = Setting.GetSettingFromJSON();
+    }
+
+    private void SaveSetting()
+    {
+        Setting.SaveSettingToJSON(showSnackBar);
+        Submit();
+    }
+}

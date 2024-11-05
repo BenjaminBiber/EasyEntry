@@ -1,0 +1,23 @@
+@using doorOpener.Models
+
+<MudStack Spacing="0" Row="true">
+    <MudToggleIconButton Class="mr-3" Icon="@Icons.Material.Filled.KeyboardArrowDown" @bind-Toggled="@OpenGroup" ToggledIcon="@Icons.Material.Filled.KeyboardArrowUp"></MudToggleIconButton>
+    <MudText Class="mb-2 mt-5 ">@DeviceGroup.Key:</MudText>
+</MudStack>
+
+<MudCollapse Expanded="OpenGroup">
+    @foreach(var device in DeviceGroup.Value)
+    {
+    <DoorControll Breakpoint="BreakPoint" Device="@device"></DoorControll>
+    } 
+</MudCollapse>
+
+@code {
+    [Parameter]
+    public KeyValuePair<string, List<Device>> DeviceGroup { get; set; }
+
+    [Parameter]
+    public Breakpoint BreakPoint { get; set; }
+
+    public bool OpenGroup = true;
+}

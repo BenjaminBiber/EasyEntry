@@ -1,0 +1,137 @@
+@page "/groupmanagement"
+@using EasyEntryApp.Components.Dialogs
+@using doorOpener.Models
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager navigationManager
+
+<MudStack Row="true">
+    <MudSpacer></MudSpacer>
+    <MudIconButton Class="mr-8" Edge="Edge.End" Icon="@Icons.Material.Filled.Edit" OnClick="OpenEditGroupDialog"></MudIconButton>
+    <MudIconButton Class="mr-8" Edge="Edge.End" Icon="@Icons.Material.Filled.AddCircle" OnClick="OpenAddGroupDialog"></MudIconButton>
+</MudStack>
+
+<MudDropContainer T="DropItem" Items="_items" ItemsSelector="@((item, dropzone) => item.Identifier == dropzone)" ItemDropped="ItemUpdated" Class="d-flex flex-wrap flex-column flex-grow-1">
+    <ChildContent>
+        @foreach (var zone in Devices.Keys)
+        {
+            <MudDropZone T="DropItem" Identifier="@zone" Class="rounded mud-background-gray pa-6 ma-8 flex-grow-1">
+                <MudText Typo="Typo.h6" Class="mb-4">@zone</MudText>
+            </MudDropZone>
+        }
+    </ChildContent>
+    <ItemRenderer>
+        <MudPaper Elevation="25" Class="pa-4 my-4">
+            <MudStack AlignItems="AlignItems.Center" Row="true">
+                <MudText>
+                    @context.Name, @context.IpAddress
+                </MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="() => DeleteDevice(context.Identifier, context.Name)" Color="Color.Primary"></MudIconButton>
+            </MudStack>
+        </MudPaper>
+    </ItemRenderer>
+</MudDropContainer>
+
+@code {
+    private void ItemUpdated(MudItemDropInfo<DropItem> dropItem)
+    {
+        // Set the new identifier
+        dropItem.Item.Identifier = dropItem.DropzoneIdentifier;
+        
+        // Update the Devices dictionary accordingly
+        var oldZone = Devices.FirstOrDefault(kvp => kvp.Value.Any(d => d.Name == dropItem.Item.Name)).Key;
+        var deviceToMove = Devices[oldZone].First(d => d.Name == dropItem.Item.Name);
+        
+        Devices[oldZone].Remove(deviceToMove);
+        Devices[dropItem.DropzoneIdentifier].Add(deviceToMove);
+    }
+
+    Dictionary<string, List<Device>> Devices = new();
+    
+    protected override void OnInitialized()
+    {
+        Devices = Device.GetAllDevicesFromJson();
+        foreach (var key in Devices.Keys)
+        {
+            foreach (var entry in Devices[key])
+            {
+                _items.Add(new DropItem(){ Name = entry.Name, IpAddress = entry.DeviceURL, Identifier = key });
+            }
+        }
+    }
+
+    private List<DropItem> _items = new();
+    
+    public class DropItem
+    {
+        public string Name { get; init; }
+        public string IpAddress { get; set; }
+        public string Identifier { get; set; }
+    }
+
+    private async Task OpenAddGroupDialog()
+    {
+        if (Devices.Any(x => x.Value.Count > 1))
+        {
+            var options = new DialogOptions()
+            {
+                BackdropClick = false,
+                CloseButton = false,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
+
+            var reference = await DialogService.ShowAsync<AddGroupDialog>("Gruppe hinzufügen", options);
+            var result = await reference.Result;
+            if (result.Data is bool isCancelled && isCancelled)
+            {
+                navigationManager.NavigateTo(navigationManager.Uri, true);
+            }
+        }
+        else
+        {
+            Snackbar.Add("Es müssen mindestens 2 Geräte vorhanden sein, um eine Gruppe zu erstellen", Severity.Error);
+        }
+    }
+
+    private async Task DeleteDevice(string group, string name)
+    {
+        var reference = await OpenerDialog.ShowGenericDialog("Möchten Sie das Gerät wirklich löschen?",Color.Warning,"Löschen", "Gerät Löschen",DialogService,"Abbrechen");
+        var result = await reference.Result;
+        if(result.Data is bool isConfirmed && isConfirmed)
+        {
+            var devicesInGroup = Devices[group];
+            var deviceToDelete = devicesInGroup.First(d => d.Name == name);
+            devicesInGroup.Remove(deviceToDelete);
+            Devices[group] = devicesInGroup;
+            Device.SaveDevicesToJSON(Devices);
+            
+            navigationManager.NavigateTo(navigationManager.Uri, true);
+        }
+    }
+    
+    private async Task OpenEditGroupDialog()
+    {
+        if (Devices.Any(x => x.Value.Count > 0))
+        {
+            var options = new DialogOptions()
+            {
+                BackdropClick = false,
+                CloseButton = false,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
+
+            var reference = await DialogService.ShowAsync<EditGroupDialog>("Gruppe editieren", options);
+            var result = await reference.Result;
+            if (result.Data is bool isCancelled && isCancelled)
+            {
+                navigationManager.NavigateTo(navigationManager.Uri, true);
+            }
+        }
+        else
+        {
+            Snackbar.Add("Es müssen mindestens 2 Geräte vorhanden sein, um eine Gruppe zu erstellen", Severity.Error);
+        }
+    }
+}

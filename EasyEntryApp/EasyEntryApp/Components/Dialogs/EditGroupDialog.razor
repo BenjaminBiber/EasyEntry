@@ -1,0 +1,84 @@
+@using System.Data
+@using System.Text.RegularExpressions
+@using doorOpener.Models
+@using Microsoft.AspNetCore.Components.Rendering
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        Gerät editieren
+    </TitleContent>
+    <DialogContent>
+        @foreach (var state in DeviceNames)
+        {
+            <MudPaper Class="mb-2 mt-2 ml-3 mr-3">
+                <MudStack AlignItems="AlignItems.Center" Row="true">
+                    <MudText Typo="Typo.body1">@state.Key.Name</MudText>
+                    <MudSelect T="string"  MultiSelection="true" Value="state.Value" ValueChanged="(string s) => OnValueChanged(s, state.Key)">
+                        @foreach (var group in Devices.Keys)
+                        {
+                            <MudSelectItem T="string" Value="@group">@group</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudStack>
+            </MudPaper>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveGroup">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+
+    private void Cancel() => MudDialog.Cancel();
+    private string selectedDevices = "";
+    private string groupToSaveName = "";
+    private string deviceToSaveURL = "";
+    private Dictionary<string, List<Device>> Devices = [];
+    private Dictionary<Device, string> DeviceNames = [];    
+    protected override async Task OnInitializedAsync()
+    {
+      Devices = Device.GetAllDevicesFromJson();
+      GetDevicesWithGroup();
+    }
+
+    private void GetDevicesWithGroup()
+    {
+        foreach (var key in Devices.Keys)
+        {
+            foreach (var device in Devices[key])
+            {
+                DeviceNames.Add(device, key);
+            }
+        }
+    }
+    
+    private async Task SaveGroup()
+    {
+        Dictionary<string, List<Device>> newDevices = new();
+        foreach(var entry in DeviceNames)
+        {
+            if(newDevices.ContainsKey(entry.Value))
+            {
+                newDevices[entry.Value].Add(entry.Key);
+            }
+            else
+            {
+                newDevices.Add(entry.Value, new List<Device>(){entry.Key});
+            }
+        }
+        Device.SaveDevicesToJSON(newDevices);
+        Submit();
+    }
+
+    private void OnValueChanged(string value, Device device)
+    {
+        DeviceNames[device] = value;
+    }
+}
