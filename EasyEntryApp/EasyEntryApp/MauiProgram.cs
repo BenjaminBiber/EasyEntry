@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
+using ZXing.Net.Maui;
+using ZXing.Net.Maui.Controls;
 
 namespace EasyEntryApp
 {
@@ -14,7 +16,7 @@ namespace EasyEntryApp
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 });
-
+            builder.UseBarcodeReader();
             builder.Services.AddMauiBlazorWebView();
             builder.Services.AddMudServices();
 

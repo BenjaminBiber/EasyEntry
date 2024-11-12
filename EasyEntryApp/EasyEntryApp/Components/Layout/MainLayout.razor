@@ -1,6 +1,7 @@
 ﻿@using EasyEntryApp.Components.Dialogs
 @using doorOpener.Models
 @using MudBlazor
+@using ZXing.Net.Maui
 @inherits LayoutComponentBase
 @inject IDialogService DialogService
 @inject NavigationManager navigationManager
@@ -174,5 +175,4 @@
     {
         navigationManager.NavigateTo(navigationManager.Uri, true);
     }
-
 }

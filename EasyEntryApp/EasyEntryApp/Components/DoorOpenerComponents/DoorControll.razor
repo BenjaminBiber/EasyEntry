@@ -16,10 +16,10 @@
             </MudStack>
         </div>
         <div class="door_controll_controlls">
-            <MudIconButton Color="Color.Success" OnClick="OpenDoor" Disabled="!deviceStatus" Size="Size.Medium" Icon="@Icons.Material.Filled.ArrowUpward"></MudIconButton>
-            <MudIconButton Color="Color.Error" OnClick="StopDoor" Disabled="!deviceStatus" Size="Size.Medium" Icon="@Icons.Material.Filled.Stop"></MudIconButton>
-            <MudIconButton Color="Color.Warning" OnClick="CloseDoor" Disabled="!deviceStatus" Size="Size.Medium" Icon="@Icons.Material.Filled.ArrowDownward"></MudIconButton>
-        </div>
+            <MudIconButton Color="Color.Success" OnClick="() => DisplayButtonPress(DeviceStatus.Opened)" Variant="(UpButtonPressed ? Variant.Outlined : Variant.Filled)" Disabled="!deviceStatus" Size="Size.Large" Icon="@Icons.Material.Filled.ArrowUpward"></MudIconButton>
+            <MudIconButton Color="Color.Error" OnClick="() => DisplayButtonPress(DeviceStatus.Neutral)" Variant="(StopButtonPressed ? Variant.Outlined : Variant.Filled)" Disabled="!deviceStatus" Size="Size.Large" Icon="@Icons.Material.Filled.Stop"></MudIconButton>
+            <MudIconButton Color="Color.Warning" OnClick="() => DisplayButtonPress(DeviceStatus.Closed)" Variant="(DownButtonPressed ? Variant.Outlined : Variant.Filled)" Disabled="!deviceStatus" Size="Size.Large" Icon="@Icons.Material.Filled.ArrowDownward"></MudIconButton>
+        </div>  
        
     </div>
 </MudPaper>
@@ -38,7 +38,10 @@
     private bool deviceStatus;
     private bool isOpened = false;
     private bool showSnackBar = true;
-
+    public bool UpButtonPressed = false;
+    public bool DownButtonPressed = false;
+    public bool StopButtonPressed = false;
+    
     protected override async Task OnInitializedAsync()
     {
         var response = await Device.TestConnection(Device.DeviceURL);
@@ -56,7 +59,6 @@
         {
             Snackbar.Add((result ? "Tor wurde erfolgreich gestoppt" : "Fehler beim stoppen des Tors"), (result ? Severity.Success : Severity.Error));
         }
-        ReloadPage();
     }
 
     public async Task OpenDoor()
@@ -66,7 +68,6 @@
         {
             Snackbar.Add((result ? "Tor wurde erfolgreich geöffnet" : "Fehler beim öffnen des Tors"), (result ? Severity.Success : Severity.Error));
         }
-        ReloadPage();
     }
 
     public async Task CloseDoor()
@@ -75,6 +76,31 @@
         if (showSnackBar)
         {
             Snackbar.Add((result ? "Tor wurde erfolgreich geschlossen" : "Fehler beim schließen des Tors"), (result ? Severity.Success : Severity.Error));
+        }
+    }
+    
+    private async Task DisplayButtonPress(DeviceStatus status)
+    {
+        switch (status)
+        {
+            case DeviceStatus.Opened:
+                UpButtonPressed = true;
+                await OpenDoor();
+                await Task.Delay(4000);
+                UpButtonPressed = false;
+                break;
+            case DeviceStatus.Closed:
+                DownButtonPressed = true;
+                await CloseDoor();
+                await Task.Delay(4000);
+                DownButtonPressed = false;
+                break;
+            case DeviceStatus.Neutral:
+                StopButtonPressed = true;
+                await StopDoor();
+                await Task.Delay(4000);
+                StopButtonPressed = false;
+                break;
         }
         ReloadPage();
     }

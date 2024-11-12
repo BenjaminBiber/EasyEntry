@@ -71,7 +71,7 @@
 
     private async Task OpenAddGroupDialog()
     {
-        if (Devices.Any(x => x.Value.Count > 1))
+        if (Devices.Any(x => x.Value.Count > 0))
         {
             var options = new DialogOptions()
             {
