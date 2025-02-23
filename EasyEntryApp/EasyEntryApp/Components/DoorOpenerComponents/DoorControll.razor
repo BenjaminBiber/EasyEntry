@@ -30,10 +30,6 @@
 
     [Parameter]
     public Breakpoint Breakpoint { get; set; }
-
-    public int WindowWidth { get; set; }
-    private string _resizeEventListenerId = string.Empty;
-    private DotNetObjectReference<DoorControll>? _dotnetObjectReference;
     
     private bool deviceStatus;
     private bool isOpened = false;
@@ -47,8 +43,7 @@
         var response = await Device.TestConnection(Device.DeviceURL);
         deviceStatus = response.IsOnline;
         isOpened = response.IsOpen;
-        showSnackBar = Setting.GetSettingFromJSON();
-        _dotnetObjectReference = DotNetObjectReference.Create(this);
+        showSnackBar = Setting.GetSettingFromJSON(Snackbar);
     }
 
 
@@ -89,12 +84,14 @@
                 await Task.Delay(4000);
                 UpButtonPressed = false;
                 break;
+                
             case DeviceStatus.Closed:
                 DownButtonPressed = true;
                 await CloseDoor();
                 await Task.Delay(4000);
                 DownButtonPressed = false;
                 break;
+                
             case DeviceStatus.Neutral:
                 StopButtonPressed = true;
                 await StopDoor();
