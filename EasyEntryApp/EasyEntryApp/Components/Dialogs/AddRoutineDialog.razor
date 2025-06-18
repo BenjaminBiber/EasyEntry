@@ -1,0 +1,83 @@
+@using doorOpener.Models
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        Routine erstellen
+    </TitleContent>
+    <DialogContent>
+        <MudStack>
+            <MudTextField Label="Name" @bind-Value="newRoutine.Name" Class="mb-4" />
+            @foreach(var step in newRoutine.Steps)
+            {
+                <MudStack Row="true" Class="mb-2" AlignItems="AlignItems.Center">
+                    @if(step.StepType == StepType.Action)
+                    {
+                        <MudSelect T="string" Label="Gerät" @bind-Value="step.DeviceName" Class="mr-4">
+                            @foreach(var name in DeviceNames)
+                            {
+                                <MudSelectItem T="string" Value="@name">@name</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudSelect T="DeviceStatus" Label="Aktion" @bind-Value="step.Status" Class="mr-4">
+                            <MudSelectItem Value="DeviceStatus.Opened">Öffnen</MudSelectItem>
+                            <MudSelectItem Value="DeviceStatus.Closed">Schließen</MudSelectItem>
+                            <MudSelectItem Value="DeviceStatus.Neutral">Stopp</MudSelectItem>
+                        </MudSelect>
+                    }
+                    else
+                    {
+                        <MudNumericField T="int" Label="Wartezeit (s)" @bind-Value="step.DelaySeconds" Class="mr-4" />
+                    }
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="() => RemoveStep(step)" />
+                </MudStack>
+            }
+            <MudButton Variant="Variant.Outlined" OnClick="AddActionStep" StartIcon="@Icons.Material.Filled.Add" Class="mr-2">Aktion hinzufügen</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="AddWaitStep" StartIcon="@Icons.Material.Filled.Timer">Warten hinzufügen</MudButton>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveRoutine">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; }
+
+    Routine newRoutine = new();
+    List<string> DeviceNames = new();
+    Dictionary<string, List<Device>> Devices = new();
+
+    protected override void OnInitialized()
+    {
+        Devices = Device.GetAllDevicesFromJson();
+        foreach (var list in Devices.Values)
+        {
+            foreach (var device in list)
+            {
+                DeviceNames.Add(device.Name);
+            }
+        }
+    }
+
+    void AddActionStep() => newRoutine.Steps.Add(new RoutineStep { StepType = StepType.Action, Status = DeviceStatus.Neutral });
+    void AddWaitStep() => newRoutine.Steps.Add(new RoutineStep { StepType = StepType.Wait, DelaySeconds = 1 });
+    void RemoveStep(RoutineStep step) => newRoutine.Steps.Remove(step);
+
+    void SaveRoutine()
+    {
+        if (string.IsNullOrWhiteSpace(newRoutine.Name) || !newRoutine.Steps.Any())
+        {
+            Snackbar.Add("Name und Schritte müssen vorhanden sein", Severity.Error);
+            return;
+        }
+        var routines = Routine.GetRoutinesFromJson();
+        routines[newRoutine.Name] = newRoutine;
+        Routine.SaveRoutinesToJson(routines);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}
