@@ -67,7 +67,7 @@
                 var device = FindDevice(step.DeviceName);
                 if(device != null)
                 {
-                    await Device.UpdateStatus(step.Status, device.DeviceURL);
+                    await device.UpdateStatus(step.Status, device.DeviceURL);
                 }
             }
         }

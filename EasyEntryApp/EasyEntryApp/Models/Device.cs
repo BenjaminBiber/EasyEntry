@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Text;
 using MudBlazor;
 using Newtonsoft.Json;
@@ -81,10 +82,17 @@ public class Device
     }
   
     public static async Task<DeviceResponse> TestConnection(string url)
-    {
+    {            
+        var responseObj = new DeviceResponse();
+        if(Debugger.IsAttached)
+        {
+            responseObj.IsOnline = true;
+            responseObj.IsOpen = false;
+            responseObj.Name = "Test Device";
+            return responseObj;
+        }
         using (HttpClient client = new HttpClient())
         {
-            var responseObj = new DeviceResponse();
             url = $"http://{url}";
             try
             {
