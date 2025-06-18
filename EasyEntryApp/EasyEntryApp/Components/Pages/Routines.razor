@@ -1,0 +1,94 @@
+@page "/routines"
+@using EasyEntryApp.Components.Dialogs
+@using doorOpener.Models
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudText Typo="Typo.h5" Class="ml-4 mt-4">Routinen</MudText>
+<MudPaper Class="ma-4 pa-4">
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddRoutineDialog">Routine erstellen</MudButton>
+</MudPaper>
+
+@if(Routines.Any())
+{
+    <MudText Typo="Typo.h5" Class="ml-4 mt-4">Gespeicherte Routinen</MudText>
+    @foreach(var routine in Routines.Values)
+    {
+        <MudPaper Class="pa-4 ma-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h6" Class="mr-2">@routine.Name</MudText>
+                <MudSpacer />
+                <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Primary" OnClick="() => ExecuteRoutine(routine)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="() => DeleteRoutine(routine.Name)" />
+            </MudStack>
+        </MudPaper>
+    }
+}
+
+@code {
+    Dictionary<string, Routine> Routines = new();
+    Dictionary<string, List<Device>> Devices = new();
+
+    protected override void OnInitialized()
+    {
+        Devices = Device.GetAllDevicesFromJson();
+        Routines = Routine.GetRoutinesFromJson();
+    }
+
+    private async Task OpenAddRoutineDialog()
+    {
+        var options = new DialogOptions()
+        {
+            BackdropClick = false,
+            CloseButton = false,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var reference = await DialogService.ShowAsync<AddRoutineDialog>("Routine erstellen", options);
+        var result = await reference.Result;
+        if(result.Data is bool isOk && isOk)
+        {
+            Routines = Routine.GetRoutinesFromJson();
+            StateHasChanged();
+        }
+    }
+
+    async Task ExecuteRoutine(Routine routine)
+    {
+        foreach(var step in routine.Steps)
+        {
+            if(step.StepType == StepType.Wait)
+            {
+                await Task.Delay(step.DelaySeconds * 1000);
+            }
+            else
+            {
+                var device = FindDevice(step.DeviceName);
+                if(device != null)
+                {
+                    await Device.UpdateStatus(step.Status, device.DeviceURL);
+                }
+            }
+        }
+    }
+
+    void DeleteRoutine(string name)
+    {
+        if(Routines.ContainsKey(name))
+        {
+            Routines.Remove(name);
+            Routine.SaveRoutinesToJson(Routines);
+        }
+    }
+
+    Device FindDevice(string name)
+    {
+        foreach(var list in Devices.Values)
+        {
+            var dev = list.FirstOrDefault(d => d.Name == name);
+            if(dev != null) return dev;
+        }
+        return null;
+    }
+}
