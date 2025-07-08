@@ -1,0 +1,58 @@
+[gd_scene load_steps=6 format=3 uid="uid://da8swfwpgm3km"]
+
+[ext_resource type="Script" uid="uid://ceaiy3u1cs0sd" path="res://DeviceGroup.cs" id="1_i0rjo"]
+[ext_resource type="Texture2D" path="res://stat_minus_1_24dp_000000_FILL0_wght400_GRAD0_opsz24.svg" id="2_od8nu"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_um78k"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+draw_center = false
+border_color = Color(0.8, 0.8, 0.8, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_od8nu"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+border_color = Color(0.8, 0.8, 0.8, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lpwcu"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+
+[node name="DeviceGroup" type="VBoxContainer"]
+custom_minimum_size = Vector2(480, 0)
+theme_override_constants/separation = 5
+script = ExtResource("1_i0rjo")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Control2" type="Control" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.05
+
+[node name="GroupName" type="Label" parent="HBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "Hurensohn"
+
+[node name="Control3" type="Control" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.02
+
+[node name="Button" type="Button" parent="HBoxContainer"]
+layout_mode = 2
+theme_override_icons/icon = ExtResource("2_od8nu")
+theme_override_styles/focus = SubResource("StyleBoxFlat_um78k")
+theme_override_styles/hover = SubResource("StyleBoxFlat_od8nu")
+theme_override_styles/normal = SubResource("StyleBoxFlat_lpwcu")
+icon = ExtResource("2_od8nu")
+flat = true
+icon_alignment = 1
+
+[node name="Control" type="Control" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Panels" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10

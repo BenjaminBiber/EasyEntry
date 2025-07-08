@@ -1,0 +1,76 @@
+[gd_scene load_steps=6 format=3 uid="uid://cmqhork68t5kl"]
+
+[ext_resource type="Script" uid="uid://bomumowwl2har" path="res://Main.cs" id="1_ig7tw"]
+[ext_resource type="StyleBox" uid="uid://dwyqlefbek1sq" path="res://IconButtonOutlined.tres" id="2_h2yge"]
+[ext_resource type="Texture2D" uid="uid://b6xlqkus5mtbm" path="res://Icons/add_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg" id="3_h2yge"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ig7tw"]
+bg_color = Color(0.95, 0.95, 0.95, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0xm2m"]
+bg_color = Color(0, 0.627451, 0.945098, 1)
+
+[node name="Node2D" type="PanelContainer"]
+anchors_preset = -1
+anchor_top = 0.243
+anchor_right = 1.0
+anchor_bottom = 0.729
+offset_top = -174.96
+offset_bottom = 761.12
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_ig7tw")
+script = ExtResource("1_ig7tw")
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="NavBar" type="PanelContainer" parent="Layout"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_0xm2m")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Layout/NavBar"]
+layout_mode = 2
+
+[node name="Control3" type="Control" parent="Layout/NavBar/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.25
+
+[node name="Label" type="Label" parent="Layout/NavBar/HBoxContainer"]
+layout_mode = 2
+text = "EasyEntry"
+
+[node name="Control" type="Control" parent="Layout/NavBar/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Layout/NavBar/HBoxContainer"]
+layout_mode = 2
+
+[node name="Control2" type="Control" parent="Layout/NavBar/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="OpenDialogButton" type="Button" parent="Layout/NavBar/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_styles/hover = ExtResource("2_h2yge")
+theme_override_styles/pressed = ExtResource("2_h2yge")
+theme_override_styles/normal = ExtResource("2_h2yge")
+icon = ExtResource("3_h2yge")
+
+[node name="Control" type="Control" parent="Layout/NavBar/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Control2" type="Control" parent="Layout/NavBar/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.25
+
+[node name="MainBox" type="VBoxContainer" parent="Layout"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Control" type="Control" parent="Layout/MainBox"]
+layout_mode = 2

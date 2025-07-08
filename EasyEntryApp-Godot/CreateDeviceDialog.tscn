@@ -1,0 +1,32 @@
+[gd_scene load_steps=3 format=3 uid="uid://ckqcy0w8xx6h6"]
+
+[ext_resource type="Script" uid="uid://bhf08ha30f4bj" path="res://CreateDeviceDialog.cs" id="1_oxcay"]
+
+[sub_resource type="Theme" id="Theme_oxcay"]
+
+[node name="AcceptDialog" type="AcceptDialog"]
+disable_3d = true
+mode = 2
+title = "Neues Gerät speichern"
+initial_position = 1
+size = Vector2i(400, 150)
+visible = true
+unresizable = true
+popup_window = true
+theme = SubResource("Theme_oxcay")
+ok_button_text = "Speichern"
+dialog_hide_on_ok = false
+script = ExtResource("1_oxcay")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 392.0
+offset_bottom = 101.0
+alignment = 1
+
+[node name="NameInput" type="LineEdit" parent="VBoxContainer"]
+layout_mode = 2
+placeholder_text = "Geräte Url"
+
+[node name="HTTPRequest" type="HTTPRequest" parent="."]
