@@ -1,0 +1,111 @@
+@using System.Reflection.Metadata.Ecma335
+@using doorOpener.Models
+@using EasyEntryLib.Services
+@inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigationManager
+@inject SettingService Setting
+
+<MudPaper Style="border: 2px solid var(--mud-palette-primary); padding:  1%;" Class="mb-8 ml-4 mr-4 mt-2" Elevation="0">
+    <div class="door_controll">
+        <div class="door_controll_Device">
+            <MudStack Row="false" AlignItems="AlignItems.Center">
+                <div class="status_controll">
+                     <MudText Align="Align.Center" Color="@(deviceStatus ? Color.Success : Color.Dark)" Class="responsive-text"><b>@Device.Name</b></MudText>
+                     <MudText Align="Align.Center" Color="@(deviceStatus ? Color.Success : Color.Dark)" Typo="Typo.body1" Class="responsive-text ml-3"><b>@(Device.IsOpened ? " - Offen" : " - Geschlossen")</b></MudText>
+                </div>
+                <MudText Align="Align.Center" Typo="Typo.body2"><i>@Device.DeviceURL</i></MudText>
+            </MudStack>
+        </div>
+        <div class="door_controll_controlls">
+            <MudIconButton Color="Color.Success" OnClick="() => DisplayButtonPress(DeviceStatus.Opened)" Variant="(UpButtonPressed ? Variant.Outlined : Variant.Filled)" Disabled="!deviceStatus" Size="Size.Large" Icon="@Icons.Material.Filled.ArrowUpward"></MudIconButton>
+            <MudIconButton Color="Color.Error" OnClick="() => DisplayButtonPress(DeviceStatus.Neutral)" Variant="(StopButtonPressed ? Variant.Outlined : Variant.Filled)" Disabled="!deviceStatus" Size="Size.Large" Icon="@Icons.Material.Filled.Stop"></MudIconButton>
+            <MudIconButton Color="Color.Warning" OnClick="() => DisplayButtonPress(DeviceStatus.Closed)" Variant="(DownButtonPressed ? Variant.Outlined : Variant.Filled)" Disabled="!deviceStatus" Size="Size.Large" Icon="@Icons.Material.Filled.ArrowDownward"></MudIconButton>
+        </div>  
+       
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public Device Device { get; set; }
+
+    [Parameter]
+    public Breakpoint Breakpoint { get; set; }
+    
+    private bool deviceStatus;
+    private bool isOpened = false;
+    private bool showSnackBar = true;
+    public bool UpButtonPressed = false;
+    public bool DownButtonPressed = false;
+    public bool StopButtonPressed = false;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Device.TestConnection(Device.DeviceURL);
+        deviceStatus = response.IsOnline;
+        isOpened = response.IsOpen;
+        showSnackBar = ((await Setting.GetAllAsync()).FirstOrDefault() ?? new Setting()).ShowSnackBar;
+    }
+
+
+    public async Task StopDoor()
+    {
+        var result= await Device.UpdateStatus(DeviceStatus.Neutral, Device.DeviceURL);
+        if (showSnackBar)
+        {
+            Snackbar.Add((result ? "Tor wurde erfolgreich gestoppt" : "Fehler beim stoppen des Tors"), (result ? Severity.Success : Severity.Error));
+        }
+    }
+
+    public async Task OpenDoor()
+    {
+        var result= await Device.UpdateStatus(DeviceStatus.Opened, Device.DeviceURL);
+        if (showSnackBar)
+        {
+            Snackbar.Add((result ? "Tor wurde erfolgreich geöffnet" : "Fehler beim öffnen des Tors"), (result ? Severity.Success : Severity.Error));
+        }
+    }
+
+    public async Task CloseDoor()
+    {
+        var result = await Device.UpdateStatus(DeviceStatus.Closed, Device.DeviceURL);
+        if (showSnackBar)
+        {
+            Snackbar.Add((result ? "Tor wurde erfolgreich geschlossen" : "Fehler beim schließen des Tors"), (result ? Severity.Success : Severity.Error));
+        }
+    }
+    
+    private async Task DisplayButtonPress(DeviceStatus status)
+    {
+        switch (status)
+        {
+            case DeviceStatus.Opened:
+                UpButtonPressed = true;
+                await OpenDoor();
+                await Task.Delay(4000);
+                UpButtonPressed = false;
+                break;
+                
+            case DeviceStatus.Closed:
+                DownButtonPressed = true;
+                await CloseDoor();
+                await Task.Delay(4000);
+                DownButtonPressed = false;
+                break;
+                
+            case DeviceStatus.Neutral:
+                StopButtonPressed = true;
+                await StopDoor();
+                await Task.Delay(4000);
+                StopButtonPressed = false;
+                break;
+        }
+        ReloadPage();
+    }
+    
+    private void ReloadPage()
+    {
+        navigationManager.NavigateTo(navigationManager.Uri, true);
+    }
+}

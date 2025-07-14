@@ -1,0 +1,97 @@
+@using doorOpener.Models
+@using EasyEntryLib.Services
+@inject ISnackbar Snackbar
+@inject DeviceGroupService DeviceGroupService
+
+<MudDialog>
+    <TitleContent>
+        Gerät editieren
+    </TitleContent>
+    <DialogContent>
+        @foreach (var entry in DeviceAssignments)
+        {
+            <MudPaper Class="mb-2 mt-2 ml-3 mr-3">
+                <MudStack AlignItems="AlignItems.Center" Row="true">
+                    <MudText Typo="Typo.body1">@entry.Key.Name</MudText>
+                    <MudSelect T="string" Value="@entry.Value" ValueChanged="(string v) => OnValueChanged(v, entry.Key)">
+                        @foreach (var group in AllGroups.Select(g => g.GroupName).Distinct())
+                        {
+                            <MudSelectItem T="string" Value="@group">@group</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudStack>
+            </MudPaper>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveGroup">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    private List<DeviceGroup> AllGroups = new();
+    private Dictionary<Device, string> DeviceAssignments = new(); // Key: Device, Value: Selected GroupName
+
+    protected override async Task OnInitializedAsync()
+    {
+        AllGroups = await DeviceGroupService.GetAllAsync();
+        MapDevicesToGroupNames();
+    }
+
+    private void MapDevicesToGroupNames()
+    {
+        DeviceAssignments.Clear();
+
+        foreach (var group in AllGroups)
+        {
+            foreach (var device in group.Devices)
+            {
+                DeviceAssignments[device] = group.GroupName;
+            }
+        }
+    }
+
+    private void OnValueChanged(string selectedGroupName, Device device)
+    {
+        DeviceAssignments[device] = selectedGroupName;
+    }
+
+    private async Task SaveGroup()
+    {
+        try
+        {
+            // Erstelle eine neue Gruppierung nach GroupName
+            var grouped = DeviceAssignments
+                .GroupBy(pair => pair.Value)
+                .Select(g => new DeviceGroup
+                {
+                    GroupName = g.Key,
+                    Devices = g.Select(p => new Device(p.Key.Name, p.Key.Status, p.Key.DeviceURL)).ToList()
+                }).ToList();
+
+            // Lösche alle Gruppen und lege neue an (einfachste Strategie)
+            foreach (var group in AllGroups)
+            {
+                await DeviceGroupService.DeleteAsync(group.Id);
+            }
+
+            foreach (var group in grouped)
+            {
+                await DeviceGroupService.CreateAsync(group);
+            }
+
+            Snackbar.Add("Gruppen erfolgreich gespeichert.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Fehler beim Speichern: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

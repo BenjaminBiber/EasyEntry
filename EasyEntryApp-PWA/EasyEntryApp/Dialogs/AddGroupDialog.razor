@@ -1,0 +1,100 @@
+@using doorOpener.Models
+@using EasyEntryLib.Services
+@inject ISnackbar Snackbar
+@inject DeviceGroupService DeviceGroupService
+
+<MudDialog>
+    <TitleContent>
+        Gerät(e) zur Gruppe hinzufügen
+    </TitleContent>
+    <DialogContent>
+        <MudForm>
+            <MudStack>
+                <MudTextField @bind-Value="groupToSaveName" Label="Gruppenname" />
+                <MudSelect T="string" Label="Geräte zur Gruppe hinzufügen" MultiSelection="true" @bind-Value="selectedDevices">
+                    @foreach (var name in DeviceNames)
+                    {
+                        <MudSelectItem T="string" Value="@name">@name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveGroup">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    private string groupToSaveName = string.Empty;
+    private string selectedDevices = string.Empty;
+    private List<DeviceGroup> ExistingGroups = [];
+    private List<Device> AllDevices = [];
+    private List<string> DeviceNames = [];
+
+    private void Cancel() => MudDialog.Cancel();
+
+    protected override async Task OnInitializedAsync()
+    {
+        ExistingGroups = await DeviceGroupService.GetAllAsync();
+        AllDevices = ExistingGroups.SelectMany(g => g.Devices).ToList();
+        DeviceNames = AllDevices.Select(d => d.Name).Distinct().ToList();
+    }
+
+    private async Task SaveGroup()
+    {
+        if (string.IsNullOrWhiteSpace(groupToSaveName))
+        {
+            Snackbar.Add("Gruppenname darf nicht leer sein", Severity.Error);
+            return;
+        }
+
+        if (ExistingGroups.Any(g => g.GroupName.Equals(groupToSaveName, StringComparison.OrdinalIgnoreCase)))
+        {
+            Snackbar.Add("Gruppe existiert bereits", Severity.Error);
+            return;
+        }
+
+        var selectedDeviceEntities = AllDevices
+            .Where(d => selectedDevices.Contains(d.Name))
+            .Select(d => new Device(
+                d.Name,
+                d.Status,
+                d.DeviceURL
+                )).ToList();
+
+        var deviceParts = selectedDevices.Split(",");
+
+        for (int i = 0; i < deviceParts.Length; i++)
+        {
+            deviceParts[i] = deviceParts[i].Trim();
+        }
+        
+        if (deviceParts.Any(x => !DeviceNames.Contains(x)))
+        {
+            Snackbar.Add("Ein oder mehrere Geräte sind nicht vorhanden", Severity.Error);
+            return;
+        }
+
+        var newGroup = new DeviceGroup
+        {
+            GroupName = groupToSaveName,
+            Devices = selectedDeviceEntities
+        };
+
+        var success = await DeviceGroupService.CreateAsync(newGroup);
+        if (success)
+        {
+            Snackbar.Add("Gruppe erfolgreich gespeichert", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add("Fehler beim Speichern der Gruppe", Severity.Error);
+        }
+    }
+}

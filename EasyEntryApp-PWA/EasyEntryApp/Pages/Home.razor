@@ -1,0 +1,54 @@
+﻿@page "/"
+@using doorOpener.Models
+@using EasyEntryLib.Services
+@using MudBlazor.Services
+@using EasyEntryApp.DoorOpenerComponents
+@inject IDialogService DialogService
+@inject IBrowserViewportService BrowserViewportService
+@implements IAsyncDisposable
+@implements IBrowserViewportObserver
+@inject DeviceService DeviceService
+@inject DeviceGroupService DeviceGroupService
+
+@if (Devices.Any())
+{
+    @foreach (var kvpdevice in Devices)
+    {
+        <DoorControlGroup BreakPoint="currentBreakPoint" DeviceGroup="@kvpdevice"></DoorControlGroup>
+    }
+}
+else
+{
+    <MudAlert Severity="Severity.Info" Class="mt-3 ml-4 mr-4">Aktuell noch keine Geräte vorhanden</MudAlert>
+}
+
+
+
+@code{
+
+    public List<DeviceGroup> Devices = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        //DeleteAllDevices();
+        Devices = await DeviceGroupService.GetAllAsync();
+    }
+    
+    private Breakpoint currentBreakPoint;
+
+    public async ValueTask DisposeAsync() => await BrowserViewportService.UnsubscribeAsync(this);
+
+    Guid IBrowserViewportObserver.Id { get; } = Guid.NewGuid();
+
+    ResizeOptions IBrowserViewportObserver.ResizeOptions { get; } = new()
+    {
+        ReportRate = 250,
+        NotifyOnBreakpointOnly = true
+    };
+
+    Task IBrowserViewportObserver.NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs browserViewportEventArgs)
+    {
+        currentBreakPoint = browserViewportEventArgs.Breakpoint;
+        return InvokeAsync(StateHasChanged);
+    }
+}

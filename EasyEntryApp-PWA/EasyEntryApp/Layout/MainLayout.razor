@@ -1,0 +1,167 @@
+﻿@using EasyEntryApp.Dialogs
+@inherits LayoutComponentBase
+@inject IDialogService DialogService
+@inject NavigationManager navigationManager
+
+<MudThemeProvider IsDarkMode="@_isDarkMode" Theme="CustomTheme" />
+<MudPopoverProvider />
+<PageTitle>EasyEntry</PageTitle>
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar>
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" OnClick="() => open = !open" Color="Color.Inherit" Edge="Edge.Start" />
+        <MudText>@GetPageName()</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Autorenew" OnClick="ReloadPage" Color="Color.Inherit" />
+        <MudIconButton Icon="@Icons.Material.Filled.AddCircle" OnClick="OpenAddDialog" Color="Color.Inherit" />
+        <MudIconButton Icon="@Icons.Material.Filled.Settings" OnClick="OpenSettingsDialog" Color="Color.Inherit" />
+    </MudAppBar>
+    <MudMainContent >
+        @Body
+    </MudMainContent>
+    <MudDrawer @bind-Open="@open" Variant="@DrawerVariant.Temporary" Elevation="0">
+        <MudDrawerHeader>
+                <MudText Typo="Typo.h5" Style="text-align: center;"><b>EasyEntry</b></MudText>
+        </MudDrawerHeader>
+        <MudNavMenu>
+            <MudNavLink Icon="@Icons.Material.Filled.SpaceDashboard" IconColor="Color.Primary" Href="" Match="NavLinkMatch.All">Dashboard</MudNavLink>
+            <MudNavLink Icon="@Icons.Material.Filled.BackupTable" IconColor="Color.Primary" Href="/groupmanagement" Match="NavLinkMatch.Prefix">Gruppen Verwalten</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+</MudLayout>
+
+
+@code {
+    bool open = false;
+    private MudTheme _theme = new();
+    public bool _isDarkMode { get; set; } = false;
+    public TimeSpan _startSpan = new TimeSpan(7, 0, 0);
+    public TimeSpan _endSpan = new TimeSpan(19, 0, 0);
+
+
+    void ToggleDrawer()
+    {
+        open = !open;
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        DarkSwitch();
+    }
+
+    void DarkSwitch()
+    {
+        if (DateTime.Now.TimeOfDay > _endSpan)
+        {
+            _isDarkMode = true;
+        }
+        else
+        {
+            _isDarkMode = false;
+        }
+    }
+
+    MudTheme CustomTheme = new()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#60ADC9",
+            TextPrimary = "#404040",
+            TextSecondary = "#EEBE88",
+            Success = "#00C853",
+            SuccessLighten = "#E3F0CC",
+            Warning = "#DC8F00",
+            WarningLighten = "#FFDD9E",
+            Error = "#E00F03",
+            ErrorLighten = "#FAB7B7",
+            TableHover = "#E8E8E8",
+            GrayLight = "#D1D1D1",
+            GrayDark = "#8C8C8C",
+            White = "#FFFFFF",
+            PrimaryLighten = "#acc1c8",
+            Secondary = "#8DC2B0",
+            Tertiary = "#619B98"
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#60ADC9",
+            TextPrimary = "#ffffff",
+            TextSecondary = "#FFFFFF",
+            Success = "#00C853",
+            SuccessLighten = "#E3F0CC",
+            Warning = "#DC8F00",
+            WarningLighten = "#FFDD9E",
+            Error = "#E00F03",
+            ErrorLighten = "#FAB7B7",
+            TableHover = "#53545e",
+            GrayLight = "#82838d",
+            GrayDark = "#FFFFFF",
+            White = "#FFFFFF",
+            PrimaryLighten = "#FFD2AD",
+            Surface = "#393A46",
+            Secondary = "#8DC2B0",
+            AppbarBackground = "#60ADC9",
+            Tertiary = "619B98"
+        }
+    };
+
+    private string GetPageName()
+    {
+        var uri = navigationManager.Uri;
+        uri.Replace("https://0.0.0.0/", "");
+        switch (uri)
+        {
+            case "":
+                return "Dashboard";
+            case "groupmanagement":
+                return "Gruppen Management";
+            default: return "Dashboard";
+        }
+    }
+    
+    private async Task OpenAddDialog()
+    {
+        var options = new DialogOptions()
+        {
+            BackdropClick = false,
+            CloseButton = false,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var reference = await DialogService.ShowAsync<AddDeviceDialog>("Gerät hinzufügen", options);
+        var result = await reference.Result;
+        if (result.Data is bool isCancelled && isCancelled)
+        {
+            navigationManager.NavigateTo(navigationManager.Uri, true);
+        }
+
+    }
+
+    private async Task OpenSettingsDialog()
+    {
+        var options = new DialogOptions()
+        {
+            BackdropClick = false,
+            CloseButton = false,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var reference = await DialogService.ShowAsync<SettingsDialog>("Einstellungen verwalten", options);
+        var result = await reference.Result;
+        if (result.Data is bool isCancelled && isCancelled)
+        {
+            navigationManager.NavigateTo(navigationManager.Uri, true);
+        }
+
+    }
+    
+    private void ReloadPage()
+    {
+        navigationManager.NavigateTo(navigationManager.Uri, true);
+    }
+}

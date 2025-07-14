@@ -1,0 +1,151 @@
+@using System.Text.RegularExpressions
+@using doorOpener.Models
+@using EasyEntryLib.Services
+@inject ISnackbar Snackbar
+@inject DeviceService DeviceService
+@inject DeviceGroupService DeviceGroupService
+
+<MudDialog>
+    <TitleContent>
+        Gerät hinzufügen
+    </TitleContent>
+    <DialogContent>
+        <MudForm>
+            <MudStack Row="true">
+                <MudTextField @bind-Value="deviceToSaveURL" Label="URL"/>
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveDevice">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private string deviceToSaveName = "";
+    private DeviceStatus deviceToSaveStatus = DeviceStatus.Neutral;
+    private string deviceToSaveURL = "";
+    private List<DeviceGroup> Devices = [];
+    private bool scanQRCode = false;
+    
+    protected override async Task OnInitializedAsync()
+    {
+      Devices = await DeviceGroupService.GetAllAsync();
+    }
+
+    async Task ScanQRCode(string result)
+    {
+  
+        if (String.IsNullOrEmpty(result))
+        {
+            Snackbar.Add("Kein QR-Code erkannt!", Severity.Error);
+            return;
+        }
+        if(!String.IsNullOrEmpty(result))
+        {
+            if (Regex.IsMatch(result, "^(?:(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)$\n"))
+            {
+                deviceToSaveURL = result;
+                SaveDevice();
+            }
+            else
+            {
+                Snackbar.Add("Kein gültiger QR-Code!", Severity.Error);
+            }
+        }
+        scanQRCode = false;
+    }
+    
+    private async Task SaveDevice()
+{
+    if (string.IsNullOrWhiteSpace(deviceToSaveURL))
+    {
+        Snackbar.Add("Alle Felder müssen ausgefüllt werden!", Severity.Error);
+        return;
+    }
+
+    // IP-Format prüfen
+    if (!Regex.IsMatch(deviceToSaveURL, @"^(?:(?:25[0-5]|2[0-4]\d|1?\d{1,2})(?:\.(?!$)|$)){4}$"))
+    {
+        Snackbar.Add("URL entspricht nicht den Richtlinien!", Severity.Error);
+        return;
+    }
+
+    // Gerät bereits vorhanden?
+    var allGroups = await DeviceGroupService.GetAllAsync();
+    if (allGroups.Any(g => g.Devices.Any(d => d.DeviceURL == deviceToSaveURL)))
+    {
+        Snackbar.Add("Gerät ist bereits vorhanden!", Severity.Error);
+        return;
+    }
+
+    var response = await Device.TestConnection(deviceToSaveURL);
+    if (!response.IsOnline)
+    {
+        Snackbar.Add("URL nicht erreichbar!", Severity.Error);
+        return;
+    }
+
+    var deviceName = !string.IsNullOrEmpty(response.Name)
+        ? response.Name
+        : deviceToSaveName;
+
+    if (string.IsNullOrEmpty(deviceName))
+    {
+        Snackbar.Add("Gerät hat noch keinen Namen, geben Sie einen Namen ein", Severity.Info);
+        return;
+    }
+
+    var newDevice = new Device(
+        deviceName,
+        DeviceStatus.Neutral,
+        deviceToSaveURL
+        );
+
+    // "ungruppiert"-Gruppe suchen oder erstellen
+    var ungrouped = allGroups.FirstOrDefault(g => g.GroupName == "ungruppiert");
+
+    if (ungrouped != null)
+    {
+        ungrouped.Devices.Add(newDevice);
+        var success = await DeviceGroupService.UpdateAsync(ungrouped);
+        if (success)
+        {
+            Snackbar.Add("Gerät gespeichert", Severity.Success);
+            Submit();
+        }
+        else
+        {
+            Snackbar.Add("Fehler beim Speichern", Severity.Error);
+        }
+    }
+    else
+    {
+        var newGroup = new DeviceGroup
+        {
+            GroupName = "ungruppiert",
+            Devices = new List<Device> { newDevice }
+        };
+
+        var success = await DeviceGroupService.CreateAsync(newGroup);
+        if (success)
+        {
+            Snackbar.Add("Gerät gespeichert", Severity.Success);
+            Submit();
+        }
+        else
+        {
+            Snackbar.Add("Fehler beim Speichern", Severity.Error);
+        }
+    }
+}
+
+
+}
