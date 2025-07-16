@@ -16,6 +16,8 @@ public class Device
     public int DeviceGroupId { get; set; } // FK
     public DeviceGroup? DeviceGroup { get; set; } // optional für Zugriff
     
+    public Device() { }
+    
     public Device( string name, DeviceStatus status, string deviceUrl)
     {
         Name = name;

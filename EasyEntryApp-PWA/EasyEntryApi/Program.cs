@@ -13,17 +13,17 @@ builder.Services.AddSwaggerGen();
 
 var connectionString = new MySqlConnectionStringBuilder
 {
-    Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "157.180.82.47",
+    Server = Environment.GetEnvironmentVariable("DB_SERVER") ?? "localhost",
     UserID = Environment.GetEnvironmentVariable("DB_User") ?? "root",
-    Password = Environment.GetEnvironmentVariable("DB_Password") ?? "4cows",
-    Database = Environment.GetEnvironmentVariable("DB_DB") ?? "miniplaner",
+    Password = Environment.GetEnvironmentVariable("DB_Password") ?? "test",
+    Database = Environment.GetEnvironmentVariable("DB_DB") ?? "Test",
     Port = 3306,
 }.ConnectionString;
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
         connectionString,
-        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("Default"))
+        ServerVersion.AutoDetect(connectionString)
     ));
 
 var app = builder.Build();
