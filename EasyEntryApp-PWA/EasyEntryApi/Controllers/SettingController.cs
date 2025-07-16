@@ -1,6 +1,8 @@
-﻿using doorOpener.Models;
+﻿using System.Text;
+using doorOpener.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace EasyEntryApi.Controllers;
 
@@ -81,4 +83,41 @@ public class SettingController : ControllerBase
 
         return NoContent();
     }
+    
+    [HttpGet("proxy")]
+    public async Task<IActionResult> ProxyToDevice([FromQuery] string url)
+    {
+        try
+        {
+            using var client = new HttpClient();
+            var response = await client.GetAsync(url);
+            var content = await response.Content.ReadAsStringAsync();
+
+            var contentType = response.Content.Headers.ContentType?.ToString() ?? "text/plain";
+            return Content(content, contentType);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Fehler beim Weiterleiten: {ex.Message}");
+        }
+    }
+
+    [HttpPut("proxy")]
+    public async Task<IActionResult> ProxyPut([FromQuery] string url, [FromBody] object body)
+    {
+        try
+        {
+            using var client = new HttpClient();
+            var content = new StringContent(JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json");
+            var response = await client.PutAsync(url, content);
+            var resultContent = await response.Content.ReadAsStringAsync();
+
+            return Content(resultContent, response.Content.Headers.ContentType?.ToString() ?? "application/json");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Fehler beim Weiterleiten: {ex.Message}");
+        }
+    }
+
 }

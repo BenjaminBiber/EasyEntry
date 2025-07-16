@@ -9,6 +9,7 @@
 @implements IBrowserViewportObserver
 @inject DeviceService DeviceService
 @inject DeviceGroupService DeviceGroupService
+@inject HttpClient HttpClient
 
 @if (Devices.Any())
 {
@@ -31,6 +32,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         //DeleteAllDevices();
+        Device.SetHttpClient(HttpClient);
         Devices = await DeviceGroupService.GetAllAsync();
     }
     
