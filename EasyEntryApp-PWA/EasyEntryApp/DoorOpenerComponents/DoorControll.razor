@@ -101,11 +101,10 @@
                 StopButtonPressed = false;
                 break;
         }
-        ReloadPage();
-    }
-    
-    private void ReloadPage()
-    {
-        navigationManager.NavigateTo(navigationManager.Uri, true);
+        var response = await Device.TestConnection(Device.DeviceURL);
+        deviceStatus = response.IsOnline;
+        isOpened = response.IsOpen;
+        Device.IsOpened = response.IsOpen;
+        StateHasChanged();
     }
 }
