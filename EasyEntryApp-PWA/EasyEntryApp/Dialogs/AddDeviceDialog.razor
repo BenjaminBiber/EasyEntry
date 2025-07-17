@@ -89,7 +89,10 @@
     var response = await Device.TestConnection(deviceToSaveURL);
     if (!response.IsOnline)
     {
-        Snackbar.Add("URL nicht erreichbar!", Severity.Error);
+        var message = string.IsNullOrWhiteSpace(response.ErrorMessage)
+            ? "URL nicht erreichbar!"
+            : response.ErrorMessage;
+        Snackbar.Add(message, Severity.Error);
         return;
     }
 

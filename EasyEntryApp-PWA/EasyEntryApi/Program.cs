@@ -2,6 +2,9 @@ using System.Text.Json.Serialization;
 using EasyEntryApi;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,6 +47,28 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 var app = builder.Build();
 app.UseCors("AllowAll");
+
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var feature = context.Features.Get<IExceptionHandlerPathFeature>();
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(feature?.Error, "Unhandled exception");
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+
+        var problem = new ProblemDetails
+        {
+            Status = StatusCodes.Status500InternalServerError,
+            Title = "An unexpected error occurred.",
+            Detail = feature?.Error.Message
+        };
+
+        await context.Response.WriteAsJsonAsync(problem);
+    });
+});
 
 using (var scope = app.Services.CreateScope())
 {
