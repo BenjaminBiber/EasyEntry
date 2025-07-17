@@ -50,25 +50,24 @@ public class Device
         try
         {
             var response = await _httpClient.GetAsync(proxyUrl);
-            if (response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
-                var stringResponse = await response.Content.ReadAsStringAsync();
-                var jsonResponse = JsonConvert.DeserializeObject<returnDevice>(stringResponse);
-                if (jsonResponse != null)
-                {
-                    responseObj.IsOnline = true;
-                    responseObj.IsOpen = jsonResponse.IsOpen;
-                    responseObj.Name = jsonResponse.name;
-                }
+                responseObj.ErrorMessage = $"Server returned {response.StatusCode}";
+                return responseObj;
             }
-            else
+
+            var stringResponse = await response.Content.ReadAsStringAsync();
+            var jsonResponse = JsonConvert.DeserializeObject<returnDevice>(stringResponse);
+            if (jsonResponse != null)
             {
-                Console.WriteLine("Response was not successful.");
+                responseObj.IsOnline = true;
+                responseObj.IsOpen = jsonResponse.IsOpen;
+                responseObj.Name = jsonResponse.name;
             }
         }
         catch (HttpRequestException ex)
         {
-            Console.WriteLine("Request failed. The device is probably offline: " + ex.Message);
+            responseObj.ErrorMessage = ex.Message;
         }
 
         return responseObj;
