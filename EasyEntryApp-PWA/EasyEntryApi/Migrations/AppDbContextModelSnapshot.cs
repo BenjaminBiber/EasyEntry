@@ -101,6 +101,80 @@ namespace EasyEntryApi.Migrations
                 {
                     b.Navigation("Devices");
                 });
+
+            modelBuilder.Entity("doorOpener.Models.Routine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Routines");
+                });
+
+            modelBuilder.Entity("doorOpener.Models.RoutineStep", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("Action")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DeviceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DurationSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RoutineId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StepType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("RoutineId");
+
+                    b.ToTable("RoutineSteps");
+                });
+
+            modelBuilder.Entity("doorOpener.Models.RoutineStep", b =>
+                {
+                    b.HasOne("doorOpener.Models.Device", "Device")
+                        .WithMany()
+                        .HasForeignKey("DeviceId");
+
+                    b.HasOne("doorOpener.Models.Routine", "Routine")
+                        .WithMany("Steps")
+                        .HasForeignKey("RoutineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Device");
+
+                    b.Navigation("Routine");
+                });
+
+            modelBuilder.Entity("doorOpener.Models.Routine", b =>
+                {
+                    b.Navigation("Steps");
+                });
 #pragma warning restore 612, 618
         }
     }

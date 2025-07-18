@@ -1,0 +1,49 @@
+@page "/routines"
+@using doorOpener.Models
+@using EasyEntryApp.Dialogs
+@using EasyEntryLib.Services
+@inject IDialogService DialogService
+@inject RoutineService RoutineService
+@inject NavigationManager navigationManager
+
+<MudStack Row="true">
+    <MudSpacer></MudSpacer>
+    <MudIconButton Class="mr-8" Edge="Edge.End" Icon="@Icons.Material.Filled.AddCircle" OnClick="OpenAddRoutineDialog"></MudIconButton>
+</MudStack>
+
+<MudPaper Class="pa-4 ma-4">
+    <MudList>
+        @foreach (var routine in Routines)
+        {
+            <MudListItem>@routine.Name</MudListItem>
+        }
+    </MudList>
+</MudPaper>
+
+@code {
+    List<Routine> Routines = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Routines = await RoutineService.GetAllAsync();
+    }
+
+    private async Task OpenAddRoutineDialog()
+    {
+        var options = new DialogOptions()
+        {
+            BackdropClick = false,
+            CloseButton = false,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var reference = await DialogService.ShowAsync<AddRoutineDialog>("Routine erstellen", options);
+        var result = await reference.Result;
+        if (result.Data is bool isCancelled && isCancelled)
+        {
+            navigationManager.NavigateTo(navigationManager.Uri, true);
+        }
+    }
+}
+
