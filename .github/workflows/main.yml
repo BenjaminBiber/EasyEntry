@@ -32,7 +32,9 @@ jobs:
         fi
 
     - name: Build the Docker image
-      run: docker build . --file EasyEntryApp-PWA/EasyEntryApp/Dockerfile --tag benjaminbiber/easyentryapp:${{ env.tag }}
+      run: docker build EasyEntryApp-PWA/EasyEntryApp \
+        --file EasyEntryApp-PWA/EasyEntryApp/Dockerfile \
+        --tag benjaminbiber/easyentryapp:${{ env.tag }}
 
     - name: Push the Docker image to Docker Hub
       run: docker push benjaminbiber/easyentryapp:${{ env.tag }}
@@ -74,5 +76,8 @@ jobs:
     - name: Build and Push Dockerfile_X Image
       if: env.dockerfilex_exists == 'true'
       run: |
-        docker build . --file EasyEntryApp-PWA/EasyEntryApi/Dockerfile --tag benjaminbiber/easyentryapi:${{ env.tag }}
+        docker build EasyEntryApp-PWA/EasyEntryApi \
+        --file EasyEntryApp-PWA/EasyEntryApi/Dockerfile \
+        --tag benjaminbiber/easyentryapi:${{ env.tag }}
+
         docker push benjaminbiber/easyentryapi:${{ env.tag }}
