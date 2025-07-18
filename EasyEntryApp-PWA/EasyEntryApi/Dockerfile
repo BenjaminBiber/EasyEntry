@@ -7,9 +7,8 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-
-COPY ["EasyEntryApp-PWA/EasyEntryApi/EasyEntryApi.csproj", "EasyEntryApi/"]
-COPY ["EasyEntryApp-PWA/EasyEntryLib/EasyEntryLib.csproj", "EasyEntryLib/"]
+COPY ["EasyEntryApi/EasyEntryApi.csproj", "EasyEntryApi/"]
+COPY ["EasyEntryLib/EasyEntryLib.csproj", "EasyEntryLib/"]
 
 RUN dotnet restore "EasyEntryApi/EasyEntryApi.csproj"
 COPY . .
