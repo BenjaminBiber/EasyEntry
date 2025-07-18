@@ -7,8 +7,8 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["EasyEntryApp/EasyEntryApp.csproj", "EasyEntryApp/"]
-COPY ["EasyEntryLib/EasyEntryLib.csproj", "EasyEntryLib/"]
+COPY ["EasyEntryApp-PWA/EasyEntryApp/EasyEntryApp.csproj", "EasyEntryApp/"]
+COPY ["EasyEntryApp-PWA/EasyEntryLib/EasyEntryLib.csproj", "EasyEntryLib/"]
 RUN dotnet restore "EasyEntryApp/EasyEntryApp.csproj"
 COPY . .
 WORKDIR "/src/EasyEntryApp"
