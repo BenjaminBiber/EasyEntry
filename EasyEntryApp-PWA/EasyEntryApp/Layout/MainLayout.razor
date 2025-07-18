@@ -28,6 +28,7 @@
         <MudNavMenu>
             <MudNavLink Icon="@Icons.Material.Filled.SpaceDashboard" IconColor="Color.Primary" Href="" Match="NavLinkMatch.All">Dashboard</MudNavLink>
             <MudNavLink Icon="@Icons.Material.Filled.BackupTable" IconColor="Color.Primary" Href="/groupmanagement" Match="NavLinkMatch.Prefix">Gruppen Verwalten</MudNavLink>
+            <MudNavLink Icon="@Icons.Material.Filled.PlaylistAdd" IconColor="Color.Primary" Href="/routines" Match="NavLinkMatch.Prefix">Routinen</MudNavLink>
         </MudNavMenu>
     </MudDrawer>
 </MudLayout>
@@ -118,6 +119,8 @@
                 return "Dashboard";
             case "groupmanagement":
                 return "Gruppen Management";
+            case "routines":
+                return "Routinen";
             default: return "Dashboard";
         }
     }

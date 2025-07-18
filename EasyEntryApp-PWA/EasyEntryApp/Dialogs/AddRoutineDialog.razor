@@ -1,0 +1,93 @@
+@using doorOpener.Models
+@using EasyEntryLib.Services
+@inject ISnackbar Snackbar
+@inject RoutineService RoutineService
+@inject DeviceGroupService DeviceGroupService
+
+<MudDialog>
+    <TitleContent>
+        Routine erstellen
+    </TitleContent>
+    <DialogContent>
+        <MudForm>
+            <MudTextField @bind-Value="routineName" Label="Name" />
+            <MudDivider Class="my-2" />
+            <MudStack>
+                @foreach(var step in Steps)
+                {
+                    <MudPaper Class="pa-2 ma-2">
+                        <MudSelect T="StepType" Label="Typ" @bind-Value="step.StepType" />
+                        @if(step.StepType == StepType.DeviceAction)
+                        {
+                            <MudSelect T="int" Label="Gerät" @bind-Value="step.DeviceId">
+                                @foreach(var d in AllDevices)
+                                {
+                                    <MudSelectItem T="int" Value="@d.Id">@d.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                            <MudSelect T="DeviceStatus" Label="Aktion" @bind-Value="step.Action">
+                                <MudSelectItem Value="DeviceStatus.Opened">Öffnen</MudSelectItem>
+                                <MudSelectItem Value="DeviceStatus.Neutral">Stopp</MudSelectItem>
+                                <MudSelectItem Value="DeviceStatus.Closed">Schließen</MudSelectItem>
+                            </MudSelect>
+                        }
+                        @if(step.StepType == StepType.Delay)
+                        {
+                            <MudNumericField T="int" Label="Wartezeit (s)" @bind-Value="step.DurationSeconds" />
+                        }
+                    </MudPaper>
+                }
+                <MudButton Variant="Variant.Outlined" OnClick="AddStep">Schritt hinzufügen</MudButton>
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveRoutine">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private string routineName = string.Empty;
+    private List<Device> AllDevices = new();
+    private List<RoutineStep> Steps = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var groups = await DeviceGroupService.GetAllAsync();
+        AllDevices = groups.SelectMany(g => g.Devices).ToList();
+        AddStep();
+    }
+
+    private void AddStep()
+    {
+        Steps.Add(new RoutineStep{ StepType = StepType.DeviceAction });
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveRoutine()
+    {
+        if(string.IsNullOrWhiteSpace(routineName))
+        {
+            Snackbar.Add("Name darf nicht leer sein", Severity.Error);
+            return;
+        }
+
+        var routine = new Routine { Name = routineName, Steps = Steps };
+        var success = await RoutineService.CreateAsync(routine);
+        if(success)
+        {
+            Snackbar.Add("Routine gespeichert", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add("Fehler beim Speichern", Severity.Error);
+        }
+    }
+}
+
