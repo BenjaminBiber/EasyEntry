@@ -12,7 +12,7 @@ RUN echo "Inhalt von /src vor COPY:" && ls -la /src
 
 COPY ["EasyEntryApp-PWA/EasyEntryApp/EasyEntryApp.csproj", "EasyEntryApp/"]
 COPY ["EasyEntryApp-PWA/EasyEntryLib/EasyEntryLib.csproj", "EasyEntryLib/"]
-RUN dotnet restore "EasyEntryApp/EasyEntryApp.csproj"
+RUN dotnet restore "EasyEntryApp-PWA/EasyEntryApp/EasyEntryApp.csproj"
 COPY . .
 WORKDIR "/src/EasyEntryApp"
 RUN dotnet build "EasyEntryApp.csproj" -c $BUILD_CONFIGURATION -o /app/build
