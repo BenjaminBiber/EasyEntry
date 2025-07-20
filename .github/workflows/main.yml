@@ -77,9 +77,8 @@ jobs:
     - name: Build and Push Dockerfile_X Image
       if: env.dockerfilex_exists == 'true'
       run: |
-        docker buildx build EasyEntryApp-PWA/EasyEntryApi \
-            --file EasyEntryApp-PWA/EasyEntryApi/Dockerfile \
-            --tag benjaminbiber/easyentryapi:${{ env.tag }} \
-            --push
+       docker build . \
+            --file EasyEntryApp-PWA/Dockerfile_Api \
+            --tag benjaminbiber/easyentryapi:latest
 
-        docker push benjaminbiber/easyentryapi:${{ env.tag }}
+        docker push benjaminbiber/easyentryapi:latest
