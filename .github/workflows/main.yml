@@ -32,11 +32,7 @@ jobs:
         fi
 
     - name: Build the Docker image
-      run: |
-            docker buildx build EasyEntryApp-PWA/EasyEntryApp \
-            --file EasyEntryApp-PWA/EasyEntryApp/Dockerfile \
-            --tag benjaminbiber/easyentryapp:${{ env.tag }} \
-            --push
+      run: docker build . --file EasyEntryApp-PWA/Dockerfile --tag benjaminbiber/easyentryapp:${{ env.imagetag }}
 
     - name: Push the Docker image to Docker Hub
       run: docker push benjaminbiber/easyentryapp:${{ env.tag }}
