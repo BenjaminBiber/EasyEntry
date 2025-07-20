@@ -10,18 +10,18 @@ WORKDIR /src
 
 RUN echo "Inhalt von /src vor COPY:" && ls -la /src
 
-COPY ["EasyEntryApp-PWA/EasyEntryAppPWA/EasyEntryAppPWA.csproj", "EasyEntryApp/"]
-COPY ["EasyEntryApp-PWA/EasyEntryLib/EasyEntryLib.csproj", "EasyEntryLib/"]
-RUN dotnet restore "EasyEntryApp/EasyEntryAppPWA.csproj"
+COPY ["EasyEntryApp/EasyEntryApp.csproj", "EasyEntryApp/"]
+COPY ["EasyEntryLib/EasyEntryLib.csproj", "EasyEntryLib/"]
+RUN dotnet restore "EasyEntryApp/EasyEntryApp.csproj"
 COPY . .
 WORKDIR "/src/EasyEntryApp"
-RUN dotnet build "EasyEntryAppPWA.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "EasyEntryApp.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "EasyEntryAppPWA.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "EasyEntryApp.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "EasyEntryAppPWA.dll"]
+ENTRYPOINT ["dotnet", "EasyEntryApp.dll"]
