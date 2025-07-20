@@ -15,11 +15,11 @@ COPY ["EasyEntryApp-PWA/EasyEntryLib/EasyEntryLib.csproj", "EasyEntryLib/"]
 RUN dotnet restore "EasyEntryApp/EasyEntryAppPWA.csproj"
 COPY . .
 WORKDIR "/src/EasyEntryApp"
-RUN dotnet build "EasyEntryApp/EasyEntryAppPWA.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "EasyEntryAppPWA.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "EasyEntryApp/EasyEntryAppPWA.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "EasyEntryAppPWA.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
