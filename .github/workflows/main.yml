@@ -68,7 +68,7 @@ jobs:
     - name: Check for Dockerfile-Manifest
       id: check_dockerfile_manifest
       run: |
-        if [ -f EasyEntryApp-PWA/EasyEntryApi/Dockerfile ]; then
+        if [ -f EasyEntryApp-PWA/Dockerfile_Api ]; then
           echo "dockerfilex_exists=true" >> $GITHUB_ENV
         else
           echo "dockerfilex_exists=false" >> $GITHUB_ENV
