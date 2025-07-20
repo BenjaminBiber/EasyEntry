@@ -31,15 +31,14 @@ jobs:
           echo "tag=latest" >> $GITHUB_ENV
         fi
 
-    - name: Build the Docker image
+    - name: Build Docker Image
       run: |
-            docker buildx build EasyEntryApp-PWA/EasyEntryApp \
-            --file EasyEntryApp-PWA/EasyEntryApp/Dockerfile \
-            --tag benjaminbiber/easyentryapp:${{ env.tag }} \
-            --push
+            docker build . \
+            --file EasyEntryApp-PWA/Dockerfile \
+            --tag benjaminbiber/easyentryapp:latest
 
     - name: Push the Docker image to Docker Hub
-      run: docker push benjaminbiber/easyentryapp:${{ env.tag }}
+      run: docker push benjaminbiber/easyentryapp:latest
       
   build_manifest:
     runs-on: ubuntu-latest
