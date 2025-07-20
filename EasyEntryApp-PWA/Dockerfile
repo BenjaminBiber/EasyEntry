@@ -7,6 +7,9 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+
+RUN echo "Inhalt von /src vor COPY:" && ls -la /src
+
 COPY ["EasyEntryApp/EasyEntryApp.csproj", "EasyEntryApp/"]
 COPY ["EasyEntryLib/EasyEntryLib.csproj", "EasyEntryLib/"]
 RUN dotnet restore "EasyEntryApp/EasyEntryApp.csproj"
