@@ -10,8 +10,8 @@ WORKDIR /src
 
 RUN echo "Inhalt von /src vor COPY:" && ls -la /src
 
-COPY ["EasyEntryApp/EasyEntryApp.csproj", "EasyEntryApp/"]
-COPY ["EasyEntryLib/EasyEntryLib.csproj", "EasyEntryLib/"]
+COPY ["EasyEntryApp-PWA/EasyEntryApp/EasyEntryApp.csproj", "EasyEntryApp/"]
+COPY ["EasyEntryApp-PWA/EasyEntryLib/EasyEntryLib.csproj", "EasyEntryLib/"]
 RUN dotnet restore "EasyEntryApp/EasyEntryApp.csproj"
 COPY . .
 WORKDIR "/src/EasyEntryApp"
