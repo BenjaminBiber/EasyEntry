@@ -51,6 +51,7 @@ import kotlinx.coroutines.flow.firstOrNull
 class EasyEntryWidget : GlanceAppWidget() {
 
     companion object {
+        val DEVICE_ID_KEY      = intPreferencesKey("w_device_id")
         val DEVICE_NAME_KEY    = stringPreferencesKey("w_device_name")
         val IS_OPENED_KEY      = booleanPreferencesKey("w_is_opened")
         val IS_LOADING_KEY     = booleanPreferencesKey("w_is_loading")
@@ -79,7 +80,7 @@ class EasyEntryWidget : GlanceAppWidget() {
                 val wide = LocalSize.current.height < SIZE_DEFAULT.height
 
                 val params = WidgetParams(
-                    deviceId    = deviceId ?: -1,
+                    deviceId    = glanceState[DEVICE_ID_KEY] ?: deviceId ?: -1,
                     deviceName  = glanceState[DEVICE_NAME_KEY] ?: device?.name ?: "Kein Gerät",
                     isOpened    = glanceState[IS_OPENED_KEY]   ?: device?.isOpened ?: false,
                     isLoading   = glanceState[IS_LOADING_KEY]  ?: false,

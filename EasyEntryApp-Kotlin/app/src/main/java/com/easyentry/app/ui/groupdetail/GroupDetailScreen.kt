@@ -149,7 +149,7 @@ fun GroupDetailScreen(
                             DeviceCard(
                                 device = device,
                                 isOnline = uiState.deviceOnlineStatus[device.id] ?: false,
-                                loadingStatus = uiState.loadingButtons[device.id],
+                                loadingActions = setOfNotNull(uiState.loadingButtons[device.id]),
                                 onControl = { status: DeviceStatus -> viewModel.onControlButton(device, status) },
                                 onMoveToGroup = { viewModel.showMoveDeviceSheet(device.id) },
                                 onDeleteDevice = { viewModel.showDeleteDeviceDialog(device.id) },

@@ -1,7 +1,8 @@
 package com.easyentry.app.widget
 
 import android.content.Context
-import androidx.glance.appwidget.updateAll
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.easyentry.app.data.repository.DeviceGroupRepository
@@ -49,7 +50,16 @@ class WidgetConfigViewModel @Inject constructor(
         viewModelScope.launch {
             widgetPreferencesDataStore.setDeviceId(appWidgetId, deviceId)
             runCatching {
-                EasyEntryWidget().updateAll(context)
+                val glanceId = GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId)
+                val device = uiState.value.allDevices.firstOrNull { it.id == deviceId }
+                updateAppWidgetState(context, glanceId) { prefs ->
+                    prefs[EasyEntryWidget.DEVICE_ID_KEY] = deviceId
+                    if (device != null) {
+                        prefs[EasyEntryWidget.DEVICE_NAME_KEY] = device.name
+                        prefs[EasyEntryWidget.IS_OPENED_KEY]   = device.isOpened
+                    }
+                }
+                EasyEntryWidget().update(context, glanceId)
             }
             onComplete()
         }
