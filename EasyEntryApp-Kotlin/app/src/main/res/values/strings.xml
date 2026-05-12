@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EasyEntry</string>
+
+    <!-- Navigation -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_groups">Gruppen</string>
+    <string name="nav_settings">Einstellungen</string>
+
+    <!-- Home -->
+    <string name="no_devices">Aktuell noch keine Geräte vorhanden</string>
+    <string name="add_device">Gerät hinzufügen</string>
+    <string name="reload">Aktualisieren</string>
+
+    <!-- Door control messages -->
+    <string name="door_opened_success">Tor wurde erfolgreich geöffnet</string>
+    <string name="door_open_error">Fehler beim öffnen des Tors</string>
+    <string name="door_closed_success">Tor wurde erfolgreich geschlossen</string>
+    <string name="door_close_error">Fehler beim schließen des Tors</string>
+    <string name="door_stopped_success">Tor wurde erfolgreich gestoppt</string>
+    <string name="door_stop_error">Fehler beim stoppen des Tors</string>
+    <string name="device_unreachable">Gerät nicht erreichbar</string>
+
+    <!-- Device status labels -->
+    <string name="status_open">Offen</string>
+    <string name="status_closed">Geschlossen</string>
+    <string name="status_neutral">Stopp</string>
+
+    <!-- Add Device -->
+    <string name="add_device_title">Gerät hinzufügen</string>
+    <string name="device_ip_label">IP-Adresse des Geräts</string>
+    <string name="device_ip_hint">z.B. 192.168.1.100</string>
+    <string name="save">Speichern</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="device_already_exists">Gerät ist bereits vorhanden!</string>
+    <string name="url_unreachable">URL nicht erreichbar!</string>
+    <string name="all_fields_required">Alle Felder müssen ausgefüllt werden!</string>
+    <string name="invalid_ip">Ungültige IP-Adresse!</string>
+    <string name="testing_connection">Verbindung wird getestet…</string>
+
+    <!-- Group Management -->
+    <string name="move_to_group">Gruppe wechseln</string>
+    <string name="move_to_group_title">In Gruppe verschieben</string>
+    <string name="group_management_title">Gruppen Verwalten</string>
+    <string name="add_group">Gruppe hinzufügen</string>
+    <string name="group_name_label">Gruppenname</string>
+    <string name="group_name_hint">z.B. Garage</string>
+    <string name="rename_group">Gruppe umbenennen</string>
+    <string name="delete_group">Gruppe löschen</string>
+    <string name="assign_device">Gerät zuweisen</string>
+    <string name="ungrouped">ungruppiert</string>
+    <string name="select_group">Gruppe auswählen</string>
+    <string name="no_groups">Noch keine Gruppen vorhanden</string>
+    <string name="group_name_empty">Gruppenname darf nicht leer sein!</string>
+    <string name="group_name_exists">Gruppenname bereits vorhanden!</string>
+
+    <!-- Device deletion -->
+    <string name="delete">Löschen</string>
+    <string name="confirm_delete_device">Möchten Sie das Gerät wirklich löschen?</string>
+    <string name="confirm_delete_group">Möchten Sie die Gruppe und alle enthaltenen Geräte löschen?</string>
+    <string name="confirm_save_group">Änderungen an der Gruppe speichern?</string>
+    <string name="confirm">Bestätigen</string>
+
+    <!-- Groups Overview -->
+    <string name="groups_overview_empty">Noch keine Gruppen vorhanden.\nGruppe über „Gruppen Verwalten" erstellen.</string>
+    <string name="group_detail_no_devices">Keine Geräte in dieser Gruppe</string>
+    <string name="select_color">Farbe wählen</string>
+    <string name="select_icon">Icon wählen</string>
+    <string name="icon_home">Haus</string>
+    <string name="icon_garage">Garage</string>
+    <string name="icon_lock">Schloss</string>
+    <string name="icon_star">Stern</string>
+    <string name="icon_car">Fahrzeug</string>
+    <string name="icon_apartment">Gebäude</string>
+    <string name="icon_build">Werkzeug</string>
+    <string name="icon_meeting_room">Raum</string>
+    <string name="icon_key">Schlüssel</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_show_notifications">Meldungen Anzeigen</string>
+    <string name="settings_show_notifications_desc">Zeigt Erfolgsmeldungen und Fehlermeldungen an</string>
+    <string name="settings_reset_data">Alle Daten zurücksetzen</string>
+    <string name="settings_reset_data_desc">Löscht alle Gruppen und Geräte unwiderruflich</string>
+    <string name="confirm_reset_all">Möchten Sie wirklich alle Gruppen und Geräte löschen? Diese Aktion kann nicht rückgängig gemacht werden.</string>
+
+    <!-- Widget -->
+    <string name="widget_description">Steuere ein Gerät direkt vom Homescreen</string>
+</resources>
