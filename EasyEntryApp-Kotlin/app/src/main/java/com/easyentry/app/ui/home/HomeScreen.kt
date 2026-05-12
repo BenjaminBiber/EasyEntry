@@ -107,7 +107,7 @@ fun HomeScreen(
                         group = group,
                         isExpanded = group.id in uiState.expandedGroups,
                         deviceOnlineStatus = uiState.deviceOnlineStatus,
-                        loadingButtons = uiState.loadingButtons,
+                        loadingDeviceActions = uiState.loadingDeviceActions,
                         onToggle = { viewModel.toggleGroup(group.id) },
                         onControl = { deviceId, status ->
                             val device = group.devices.first { it.id == deviceId }

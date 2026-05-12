@@ -39,7 +39,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.easyentry.app.R
 import com.easyentry.app.domain.model.Device
 import com.easyentry.app.domain.model.DeviceStatus
@@ -54,7 +53,7 @@ import com.easyentry.app.ui.theme.Online
 fun DeviceCard(
     device: Device,
     isOnline: Boolean,
-    loadingStatus: DeviceStatus?,
+    loadingActions: Set<DeviceStatus>,
     onControl: (DeviceStatus) -> Unit,
     onMoveToGroup: () -> Unit,
     onDeleteDevice: (() -> Unit)? = null,
@@ -162,12 +161,12 @@ fun DeviceCard(
                             } else {
                                 stringResource(R.string.device_unreachable)
                             },
-                            fontSize = 13.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = device.deviceUrl,
-                            fontSize = 11.sp,
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline
                         )
                     }
@@ -179,22 +178,22 @@ fun DeviceCard(
                         ControlButton(
                             icon = { Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Öffnen", modifier = Modifier.size(22.dp)) },
                             color = DoorOpen,
-                            isLoading = loadingStatus == DeviceStatus.OPENED,
-                            enabled = isOnline && loadingStatus == null,
+                            isLoading = DeviceStatus.OPENED in loadingActions,
+                            enabled = isOnline && DeviceStatus.OPENED !in loadingActions,
                             onClick = { onControl(DeviceStatus.OPENED) }
                         )
                         ControlButton(
                             icon = { Icon(Icons.Default.Stop, contentDescription = "Stopp", modifier = Modifier.size(22.dp)) },
                             color = DoorStop,
-                            isLoading = loadingStatus == DeviceStatus.NEUTRAL,
-                            enabled = isOnline && loadingStatus == null,
+                            isLoading = DeviceStatus.NEUTRAL in loadingActions,
+                            enabled = isOnline && DeviceStatus.NEUTRAL !in loadingActions,
                             onClick = { onControl(DeviceStatus.NEUTRAL) }
                         )
                         ControlButton(
                             icon = { Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Schließen", modifier = Modifier.size(22.dp)) },
                             color = DoorClose,
-                            isLoading = loadingStatus == DeviceStatus.CLOSED,
-                            enabled = isOnline && loadingStatus == null,
+                            isLoading = DeviceStatus.CLOSED in loadingActions,
+                            enabled = isOnline && DeviceStatus.CLOSED !in loadingActions,
                             onClick = { onControl(DeviceStatus.CLOSED) }
                         )
                     }

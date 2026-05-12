@@ -39,7 +39,7 @@ fun DeviceGroupSection(
     group: DeviceGroup,
     isExpanded: Boolean,
     deviceOnlineStatus: Map<Int, Boolean>,
-    loadingButtons: Map<Int, DeviceStatus?>,
+    loadingDeviceActions: Set<Pair<Int, DeviceStatus>>,
     onToggle: () -> Unit,
     onControl: (deviceId: Int, status: DeviceStatus) -> Unit,
     onMoveToGroup: (deviceId: Int) -> Unit,
@@ -104,7 +104,7 @@ fun DeviceGroupSection(
                             DeviceCard(
                                 device = device,
                                 isOnline = deviceOnlineStatus[device.id] ?: false,
-                                loadingStatus = loadingButtons[device.id],
+                                loadingActions = loadingDeviceActions.filter { it.first == device.id }.map { it.second }.toSet(),
                                 onControl = { status -> onControl(device.id, status) },
                                 onMoveToGroup = { onMoveToGroup(device.id) },
                                 modifier = Modifier

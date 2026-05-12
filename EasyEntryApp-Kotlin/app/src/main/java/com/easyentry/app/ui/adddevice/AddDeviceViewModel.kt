@@ -68,4 +68,8 @@ class AddDeviceViewModel @Inject constructor(
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }
+
+    fun resetState() {
+        _uiState.value = UiState()
+    }
 }

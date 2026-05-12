@@ -32,7 +32,7 @@ class HomeViewModel @Inject constructor(
         val groups: List<DeviceGroup> = emptyList(),
         val expandedGroups: Set<Int> = emptySet(),
         val deviceOnlineStatus: Map<Int, Boolean> = emptyMap(),
-        val loadingButtons: Map<Int, DeviceStatus?> = emptyMap(),
+        val loadingDeviceActions: Set<Pair<Int, DeviceStatus>> = emptySet(),
         val showSnackBar: Boolean = true,
         val snackbarMessage: String? = null,
         val showMoveSheet: Boolean = false,
@@ -85,8 +85,9 @@ class HomeViewModel @Inject constructor(
 
     fun onControlButton(device: Device, status: DeviceStatus) {
         viewModelScope.launch {
+            val key = device.id to status
             _uiState.update { state ->
-                state.copy(loadingButtons = state.loadingButtons + (device.id to status))
+                state.copy(loadingDeviceActions = state.loadingDeviceActions + key)
             }
 
             val url = "http://${device.deviceUrl}/"
@@ -114,7 +115,7 @@ class HomeViewModel @Inject constructor(
             val isOnline = testConnection(device.deviceUrl)
             _uiState.update { state ->
                 state.copy(
-                    loadingButtons = state.loadingButtons - device.id,
+                    loadingDeviceActions = state.loadingDeviceActions - key,
                     deviceOnlineStatus = state.deviceOnlineStatus + (device.id to isOnline)
                 )
             }
