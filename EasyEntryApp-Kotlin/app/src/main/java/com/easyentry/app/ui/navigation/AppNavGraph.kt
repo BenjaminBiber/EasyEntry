@@ -17,6 +17,7 @@ import com.easyentry.app.ui.groupdetail.GroupDetailScreen
 import com.easyentry.app.ui.groupmanagement.AddGroupSheet
 import com.easyentry.app.ui.groupmanagement.GroupManagementViewModel
 import com.easyentry.app.ui.groups.GroupsOverviewScreen
+import com.easyentry.app.ui.settings.BackupRestoreScreen
 import com.easyentry.app.ui.settings.SettingsScreen
 
 @Composable
@@ -46,7 +47,10 @@ fun AppNavGraph(navController: NavHostController) {
             GroupDetailScreen(onBack = { navController.popBackStack() })
         }
         composable(BottomNavDestination.Settings.route) {
-            SettingsScreen()
+            SettingsScreen(onNavigateToBackup = { navController.navigate("backup_restore") })
+        }
+        composable("backup_restore") {
+            BackupRestoreScreen(onBack = { navController.popBackStack() })
         }
     }
 

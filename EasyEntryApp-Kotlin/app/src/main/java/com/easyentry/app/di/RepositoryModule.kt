@@ -1,5 +1,7 @@
 package com.easyentry.app.di
 
+import com.easyentry.app.data.repository.BackupRepository
+import com.easyentry.app.data.repository.BackupRepositoryImpl
 import com.easyentry.app.data.repository.DeviceGroupRepository
 import com.easyentry.app.data.repository.DeviceGroupRepositoryImpl
 import dagger.Binds
@@ -17,4 +19,10 @@ abstract class RepositoryModule {
     abstract fun bindDeviceGroupRepository(
         impl: DeviceGroupRepositoryImpl
     ): DeviceGroupRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBackupRepository(
+        impl: BackupRepositoryImpl
+    ): BackupRepository
 }

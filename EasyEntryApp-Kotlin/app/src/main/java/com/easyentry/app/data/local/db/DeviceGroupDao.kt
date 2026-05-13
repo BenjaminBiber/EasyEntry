@@ -3,6 +3,7 @@ package com.easyentry.app.data.local.db
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
@@ -24,6 +25,9 @@ interface DeviceGroupDao {
 
     @Insert
     suspend fun insert(group: DeviceGroupEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(groups: List<DeviceGroupEntity>)
 
     @Update
     suspend fun update(group: DeviceGroupEntity)

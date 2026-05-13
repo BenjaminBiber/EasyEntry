@@ -84,6 +84,23 @@
     <string name="settings_reset_data_desc">Löscht alle Gruppen und Geräte unwiderruflich</string>
     <string name="confirm_reset_all">Möchten Sie wirklich alle Gruppen und Geräte löschen? Diese Aktion kann nicht rückgängig gemacht werden.</string>
 
+    <!-- Backup & Restore -->
+    <string name="settings_backup">Sicherung &amp; Wiederherstellung</string>
+    <string name="settings_backup_desc">Daten sichern oder wiederherstellen</string>
+    <string name="open">Öffnen</string>
+    <string name="backup_restore_title">Sicherung &amp; Wiederherstellung</string>
+    <string name="backup_export_title">Sicherung exportieren</string>
+    <string name="backup_export_desc">Exportiert alle Gruppen und Geräte als JSON-Datei</string>
+    <string name="backup_import_title">Sicherung importieren</string>
+    <string name="backup_import_desc">Alle aktuellen Daten werden durch die Sicherung ersetzt</string>
+    <string name="export_btn">Exportieren</string>
+    <string name="import_btn">Importieren</string>
+    <string name="backup_export_success">Sicherung erfolgreich exportiert</string>
+    <string name="backup_export_error">Fehler beim Exportieren der Sicherung</string>
+    <string name="backup_import_success">Sicherung erfolgreich wiederhergestellt</string>
+    <string name="backup_import_error">Fehler beim Importieren der Sicherung</string>
+    <string name="confirm_import">Alle aktuellen Daten werden durch die Sicherung ersetzt. Fortfahren?</string>
+
     <!-- Widget -->
     <string name="widget_description">Steuere ein Gerät direkt vom Homescreen</string>
 </resources>
