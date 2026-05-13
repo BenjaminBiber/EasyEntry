@@ -104,4 +104,5 @@
 
     <!-- Widget -->
     <string name="widget_description">Steuere ein Gerät direkt vom Homescreen</string>
+    <string name="schedule_widget_description">Nächste Zeitpläne auf dem Homescreen</string>
 </resources>

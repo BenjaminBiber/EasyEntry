@@ -76,7 +76,13 @@ internal fun scheduleDisplayText(item: ScheduledActionWithDeviceInfo): String {
     return if (action.isRecurring) {
         val dayNames = listOf("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
         val days = dayNames.filterIndexed { i, _ -> action.dayOfWeekBitmask and (1 shl i) != 0 }
-        val daysText = if (days.isEmpty()) "–" else days.joinToString(", ")
+        val daysText = when {
+            days.isEmpty() -> "–"
+            action.dayOfWeekBitmask == 0b1111111 -> "Täglich"
+            action.dayOfWeekBitmask == 0b0011111 -> "Werktage"
+            action.dayOfWeekBitmask == 0b1100000 || action.dayOfWeekBitmask == 0b1110000 -> "Wochenende"
+            else -> days.joinToString(", ")
+        }
         "$daysText • %02d:%02d".format(action.hourOfDay, action.minuteOfHour)
     } else {
         "Einmalig in ${action.delayMinutes} Minuten"
