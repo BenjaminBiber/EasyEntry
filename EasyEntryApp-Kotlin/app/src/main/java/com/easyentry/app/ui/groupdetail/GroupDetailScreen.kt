@@ -12,7 +12,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,6 +68,7 @@ fun GroupDetailScreen(
 
     val group = uiState.group
     val groupColor = group?.let { Color(it.color) } ?: MaterialTheme.colorScheme.primary
+    val batchEnabled = uiState.loadingButtons.isEmpty() && uiState.batchLoadingAction == null
 
     Scaffold(
         topBar = {
@@ -80,6 +85,50 @@ fun GroupDetailScreen(
                             contentDescription = "Zurück",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = { viewModel.onBatchControl(DeviceStatus.OPENED) },
+                        enabled = batchEnabled
+                    ) {
+                        if (uiState.batchLoadingAction == DeviceStatus.OPENED) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Alle öffnen")
+                        }
+                    }
+                    IconButton(
+                        onClick = { viewModel.onBatchControl(DeviceStatus.NEUTRAL) },
+                        enabled = batchEnabled
+                    ) {
+                        if (uiState.batchLoadingAction == DeviceStatus.NEUTRAL) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.Stop, contentDescription = "Alle stoppen")
+                        }
+                    }
+                    IconButton(
+                        onClick = { viewModel.onBatchControl(DeviceStatus.CLOSED) },
+                        enabled = batchEnabled
+                    ) {
+                        if (uiState.batchLoadingAction == DeviceStatus.CLOSED) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Alle schließen")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -149,6 +198,7 @@ fun GroupDetailScreen(
                                     device = device,
                                     isOnline = uiState.deviceOnlineStatus[device.id] ?: false,
                                     loadingActions = setOfNotNull(uiState.loadingButtons[device.id]),
+                                    enabled = uiState.batchLoadingAction == null,
                                     onControl = { status: DeviceStatus -> viewModel.onControlButton(device, status) },
                                     onMoveToGroup = { viewModel.showMoveDeviceSheet(device.id) },
                                     onDeleteDevice = { viewModel.showDeleteDeviceDialog(device.id) },

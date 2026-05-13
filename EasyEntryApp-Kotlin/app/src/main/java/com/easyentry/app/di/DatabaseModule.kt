@@ -10,6 +10,9 @@ import com.easyentry.app.data.local.db.DeviceDao
 import com.easyentry.app.data.local.db.DeviceGroupDao
 import com.easyentry.app.data.local.db.MIGRATION_1_2
 import com.easyentry.app.data.local.db.MIGRATION_2_3
+import com.easyentry.app.data.local.db.MIGRATION_3_4
+import com.easyentry.app.data.local.db.MIGRATION_4_5
+import com.easyentry.app.data.local.db.ScheduledActionDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -27,7 +30,7 @@ object DatabaseModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "easyentry.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .build()
 
     @Provides
@@ -35,6 +38,9 @@ object DatabaseModule {
 
     @Provides
     fun provideDeviceDao(db: AppDatabase): DeviceDao = db.deviceDao()
+
+    @Provides
+    fun provideScheduledActionDao(db: AppDatabase): ScheduledActionDao = db.scheduledActionDao()
 
     @Provides
     @Singleton

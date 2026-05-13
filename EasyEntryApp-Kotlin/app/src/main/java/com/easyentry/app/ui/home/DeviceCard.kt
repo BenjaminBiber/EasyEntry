@@ -57,6 +57,7 @@ fun DeviceCard(
     onControl: (DeviceStatus) -> Unit,
     onMoveToGroup: () -> Unit,
     onDeleteDevice: (() -> Unit)? = null,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
@@ -179,21 +180,21 @@ fun DeviceCard(
                             icon = { Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Öffnen", modifier = Modifier.size(22.dp)) },
                             color = DoorOpen,
                             isLoading = DeviceStatus.OPENED in loadingActions,
-                            enabled = isOnline && DeviceStatus.OPENED !in loadingActions,
+                            enabled = enabled && isOnline && DeviceStatus.OPENED !in loadingActions,
                             onClick = { onControl(DeviceStatus.OPENED) }
                         )
                         ControlButton(
                             icon = { Icon(Icons.Default.Stop, contentDescription = "Stopp", modifier = Modifier.size(22.dp)) },
                             color = DoorStop,
                             isLoading = DeviceStatus.NEUTRAL in loadingActions,
-                            enabled = isOnline && DeviceStatus.NEUTRAL !in loadingActions,
+                            enabled = enabled && isOnline && DeviceStatus.NEUTRAL !in loadingActions,
                             onClick = { onControl(DeviceStatus.NEUTRAL) }
                         )
                         ControlButton(
                             icon = { Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Schließen", modifier = Modifier.size(22.dp)) },
                             color = DoorClose,
                             isLoading = DeviceStatus.CLOSED in loadingActions,
-                            enabled = isOnline && DeviceStatus.CLOSED !in loadingActions,
+                            enabled = enabled && isOnline && DeviceStatus.CLOSED !in loadingActions,
                             onClick = { onControl(DeviceStatus.CLOSED) }
                         )
                     }

@@ -2,6 +2,7 @@ package com.easyentry.app.ui.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Workspaces
 import androidx.compose.material3.Icon
@@ -23,11 +24,13 @@ sealed class BottomNavDestination(
 ) {
     object Home : BottomNavDestination("home", R.string.nav_dashboard, Icons.Default.Home)
     object Groups : BottomNavDestination("groups", R.string.nav_groups, Icons.Default.Workspaces)
+    object Schedules : BottomNavDestination("schedules", R.string.nav_schedules, Icons.Default.Schedule)
     object Settings : BottomNavDestination("settings", R.string.nav_settings, Icons.Default.Settings)
 }
 
 val bottomNavDestinations = listOf(
     BottomNavDestination.Home,
+    BottomNavDestination.Schedules,
     BottomNavDestination.Settings
 )
 

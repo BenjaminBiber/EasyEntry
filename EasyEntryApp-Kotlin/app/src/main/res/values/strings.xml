@@ -5,6 +5,7 @@
     <!-- Navigation -->
     <string name="nav_dashboard">Dashboard</string>
     <string name="nav_groups">Gruppen</string>
+    <string name="nav_schedules">Zeitpläne</string>
     <string name="nav_settings">Einstellungen</string>
 
     <!-- Home -->

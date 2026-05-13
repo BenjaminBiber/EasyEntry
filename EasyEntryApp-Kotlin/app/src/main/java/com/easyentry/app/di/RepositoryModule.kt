@@ -4,6 +4,8 @@ import com.easyentry.app.data.repository.BackupRepository
 import com.easyentry.app.data.repository.BackupRepositoryImpl
 import com.easyentry.app.data.repository.DeviceGroupRepository
 import com.easyentry.app.data.repository.DeviceGroupRepositoryImpl
+import com.easyentry.app.data.repository.ScheduledActionRepository
+import com.easyentry.app.data.repository.ScheduledActionRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -25,4 +27,10 @@ abstract class RepositoryModule {
     abstract fun bindBackupRepository(
         impl: BackupRepositoryImpl
     ): BackupRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindScheduledActionRepository(
+        impl: ScheduledActionRepositoryImpl
+    ): ScheduledActionRepository
 }

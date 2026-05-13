@@ -37,6 +37,7 @@ class GroupDetailViewModel @Inject constructor(
         val allGroups: List<DeviceGroup> = emptyList(),
         val deviceOnlineStatus: Map<Int, Boolean> = emptyMap(),
         val loadingButtons: Map<Int, DeviceStatus?> = emptyMap(),
+        val batchLoadingAction: DeviceStatus? = null,
         val showSnackBar: Boolean = true,
         val snackbarMessage: String? = null,
         val showMoveSheet: Boolean = false,
@@ -119,6 +120,58 @@ class GroupDetailViewModel @Inject constructor(
                 state.copy(
                     loadingButtons = state.loadingButtons - device.id,
                     deviceOnlineStatus = state.deviceOnlineStatus + (device.id to isOnline)
+                )
+            }
+        }
+    }
+
+    fun onBatchControl(status: DeviceStatus) {
+        val devices = _uiState.value.group?.devices ?: return
+        if (devices.isEmpty()) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(batchLoadingAction = status) }
+
+            val results: List<Boolean> = devices.map { device ->
+                async {
+                    try {
+                        espApi.controlDoor("http://${device.deviceUrl}/", EspControlDto(status.value))
+                        true
+                    } catch (e: Exception) {
+                        false
+                    }
+                }
+            }.awaitAll()
+
+            if (_uiState.value.showSnackBar) {
+                val successCount = results.count { it }
+                val total = devices.size
+                val actionWord = when (status) {
+                    DeviceStatus.OPENED  -> "geöffnet"
+                    DeviceStatus.CLOSED  -> "geschlossen"
+                    DeviceStatus.NEUTRAL -> "gestoppt"
+                }
+                val message = if (successCount == total) {
+                    "Alle Geräte erfolgreich $actionWord"
+                } else {
+                    "$successCount von $total Geräten erfolgreich $actionWord"
+                }
+                _uiState.update { it.copy(snackbarMessage = message) }
+            }
+
+            delay(4_000)
+
+            val probeResults = devices.map { device ->
+                async {
+                    val isOnline = testConnection(device.deviceUrl)
+                    device.id to isOnline
+                }
+            }.awaitAll()
+
+            _uiState.update { state ->
+                state.copy(
+                    batchLoadingAction = null,
+                    deviceOnlineStatus = state.deviceOnlineStatus + probeResults.toMap()
                 )
             }
         }
