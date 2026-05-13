@@ -12,12 +12,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -88,11 +88,6 @@ fun GroupDetailScreen(
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
                     actionIconContentColor = MaterialTheme.colorScheme.onPrimary
                 ),
-                actions = {
-                    IconButton(onClick = { viewModel.reload() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.reload))
-                    }
-                }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -104,74 +99,79 @@ fun GroupDetailScreen(
             localDevices = localDevices.toMutableList().apply { add(to.index - 1, removeAt(from.index - 1)) }
         }
 
-        if (devices.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(R.string.group_detail_no_devices),
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(32.dp)
-                )
-            }
-        } else {
-            LazyColumn(
-                state = lazyListState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item { }
-                items(localDevices, key = { it.id }) { device ->
-                    ReorderableItem(reorderState, key = device.id) { _ ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.DragHandle,
-                                contentDescription = "Reihenfolge ändern",
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .draggableHandle(
-                                        onDragStopped = {
-                                            viewModel.reorderDevices(localDevices.map { it.id })
-                                        }
-                                    ),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            DeviceCard(
-                                device = device,
-                                isOnline = uiState.deviceOnlineStatus[device.id] ?: false,
-                                loadingActions = setOfNotNull(uiState.loadingButtons[device.id]),
-                                onControl = { status: DeviceStatus -> viewModel.onControlButton(device, status) },
-                                onMoveToGroup = { viewModel.showMoveDeviceSheet(device.id) },
-                                onDeleteDevice = { viewModel.showDeleteDeviceDialog(device.id) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 8.dp)
-                            )
+        PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = { viewModel.reload() },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            if (devices.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(R.string.group_detail_no_devices),
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(32.dp)
+                    )
+                }
+            } else {
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item { }
+                    items(localDevices, key = { it.id }) { device ->
+                        ReorderableItem(reorderState, key = device.id) { _ ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.DragHandle,
+                                    contentDescription = "Reihenfolge ändern",
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .draggableHandle(
+                                            onDragStopped = {
+                                                viewModel.reorderDevices(localDevices.map { it.id })
+                                            }
+                                        ),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                DeviceCard(
+                                    device = device,
+                                    isOnline = uiState.deviceOnlineStatus[device.id] ?: false,
+                                    loadingActions = setOfNotNull(uiState.loadingButtons[device.id]),
+                                    onControl = { status: DeviceStatus -> viewModel.onControlButton(device, status) },
+                                    onMoveToGroup = { viewModel.showMoveDeviceSheet(device.id) },
+                                    onDeleteDevice = { viewModel.showDeleteDeviceDialog(device.id) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(start = 8.dp)
+                                )
+                            }
                         }
                     }
+                    item { }
                 }
-                item { }
-            }
 
-            if (uiState.showMoveSheet) {
-                MoveToGroupSheet(
-                    groups = uiState.allGroups,
-                    currentGroupId = uiState.group?.id ?: -1,
-                    onSelect = { groupId ->
-                        uiState.moveDeviceId?.let { viewModel.moveDevice(it, groupId) }
-                    },
-                    onDismiss = { viewModel.hideMoveDeviceSheet() }
-                )
+                if (uiState.showMoveSheet) {
+                    MoveToGroupSheet(
+                        groups = uiState.allGroups,
+                        currentGroupId = uiState.group?.id ?: -1,
+                        onSelect = { groupId ->
+                            uiState.moveDeviceId?.let { viewModel.moveDevice(it, groupId) }
+                        },
+                        onDismiss = { viewModel.hideMoveDeviceSheet() }
+                    )
+                }
             }
         }
     }

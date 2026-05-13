@@ -6,9 +6,11 @@ import com.easyentry.app.data.repository.DeviceGroupRepository
 import com.easyentry.app.domain.model.DeviceGroup
 import com.easyentry.app.domain.model.GroupIcon
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,6 +24,7 @@ class GroupsOverviewViewModel @Inject constructor(
         val groups: List<DeviceGroup> = emptyList(),
         val editingGroup: DeviceGroup? = null,
         val errorMessage: String? = null,
+        val isRefreshing: Boolean = false,
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -63,6 +66,15 @@ class GroupsOverviewViewModel @Inject constructor(
         viewModelScope.launch {
             repository.deleteGroup(groupId)
             stopEditing()
+        }
+    }
+
+    fun reload() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true) }
+            val groups = repository.getGroupsWithDevices().first()
+            delay(300)
+            _uiState.update { it.copy(groups = groups, isRefreshing = false) }
         }
     }
 

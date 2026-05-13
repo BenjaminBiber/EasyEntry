@@ -43,6 +43,7 @@ class GroupDetailViewModel @Inject constructor(
         val moveDeviceId: Int? = null,
         val showDeleteDeviceDialog: Boolean = false,
         val deleteDeviceId: Int? = null,
+        val isRefreshing: Boolean = false,
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -125,9 +126,20 @@ class GroupDetailViewModel @Inject constructor(
 
     fun reload() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true) }
             val groups = deviceGroupRepository.getGroupsWithDevices().first()
             val group = groups.firstOrNull { it.id == groupId }
-            group?.let { probeAllDevices(it.devices) }
+            if (group != null) {
+                val results = group.devices.map { device ->
+                    async {
+                        val isOnline = testConnection(device.deviceUrl)
+                        device.id to isOnline
+                    }
+                }.awaitAll()
+                _uiState.update { it.copy(deviceOnlineStatus = results.toMap(), isRefreshing = false) }
+            } else {
+                _uiState.update { it.copy(isRefreshing = false) }
+            }
         }
     }
 
