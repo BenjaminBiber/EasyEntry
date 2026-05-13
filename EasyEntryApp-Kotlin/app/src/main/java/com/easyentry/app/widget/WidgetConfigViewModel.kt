@@ -3,10 +3,12 @@ package com.easyentry.app.widget
 import android.content.Context
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.easyentry.app.data.repository.DeviceGroupRepository
 import com.easyentry.app.domain.model.Device
+import com.easyentry.app.domain.model.DeviceGroup
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +27,7 @@ class WidgetConfigViewModel @Inject constructor(
 ) : ViewModel() {
 
     data class UiState(
-        val allDevices: List<Device> = emptyList(),
+        val groups: List<DeviceGroup> = emptyList(),
         val isLoading: Boolean = true
     )
 
@@ -37,8 +39,7 @@ class WidgetConfigViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val groups = deviceGroupRepository.getGroupsWithDevices().first()
-            val devices = groups.flatMap { it.devices }
-            _uiState.update { it.copy(allDevices = devices, isLoading = false) }
+            _uiState.update { it.copy(groups = groups, isLoading = false) }
         }
     }
 
@@ -49,9 +50,9 @@ class WidgetConfigViewModel @Inject constructor(
     fun selectDevice(deviceId: Int, onComplete: () -> Unit) {
         viewModelScope.launch {
             widgetPreferencesDataStore.setDeviceId(appWidgetId, deviceId)
-            runCatching {
+            val result = runCatching {
                 val glanceId = GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId)
-                val device = uiState.value.allDevices.firstOrNull { it.id == deviceId }
+                val device = uiState.value.groups.flatMap { it.devices }.firstOrNull { it.id == deviceId }
                 updateAppWidgetState(context, glanceId) { prefs ->
                     prefs[EasyEntryWidget.DEVICE_ID_KEY] = deviceId
                     if (device != null) {
@@ -60,6 +61,11 @@ class WidgetConfigViewModel @Inject constructor(
                     }
                 }
                 EasyEntryWidget().update(context, glanceId)
+            }
+            if (result.isFailure) {
+                // Fallback für Launcher, die GlanceId erst nach der Config-Activity registrieren
+                // (z.B. Nothing Launcher): provideGlance liest deviceId dann aus dem DataStore
+                EasyEntryWidget().updateAll(context)
             }
             onComplete()
         }
