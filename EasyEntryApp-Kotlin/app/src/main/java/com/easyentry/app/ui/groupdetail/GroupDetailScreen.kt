@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.easyentry.app.R
 import com.easyentry.app.domain.model.DeviceStatus
+import com.easyentry.app.domain.model.Reachability
 import com.easyentry.app.ui.common.ConfirmationDialog
 import com.easyentry.app.ui.home.DeviceCard
 import com.easyentry.app.ui.home.MoveToGroupSheet
@@ -196,7 +197,7 @@ fun GroupDetailScreen(
                                 )
                                 DeviceCard(
                                     device = device,
-                                    isOnline = uiState.deviceOnlineStatus[device.id] ?: false,
+                                    reachability = uiState.deviceReachability[device.id]?.state ?: Reachability.UNKNOWN,
                                     loadingActions = setOfNotNull(uiState.loadingButtons[device.id]),
                                     enabled = uiState.batchLoadingAction == null,
                                     onControl = { status: DeviceStatus -> viewModel.onControlButton(device, status) },

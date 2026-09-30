@@ -80,9 +80,8 @@ class DeviceGroupRepositoryImpl @Inject constructor(
     }
 
     override suspend fun reorderDevices(orderedDeviceIds: List<Int>): Result<Unit> = runCatching {
-        orderedDeviceIds.forEachIndexed { index, id ->
-            deviceDao.updatePosition(id, index)
-        }
+        // Eine Transaktion statt N Einzel-Updates: sonst invalidiert Room den Flow N mal.
+        deviceDao.updatePositions(orderedDeviceIds)
     }
 }
 

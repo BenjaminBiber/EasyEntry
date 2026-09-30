@@ -106,7 +106,7 @@ fun HomeScreen(
                     DeviceGroupSection(
                         group = group,
                         isExpanded = group.id in uiState.expandedGroups,
-                        deviceOnlineStatus = uiState.deviceOnlineStatus,
+                        deviceReachability = uiState.deviceReachability,
                         loadingDeviceActions = uiState.loadingDeviceActions,
                         onToggle = { viewModel.toggleGroup(group.id) },
                         onControl = { deviceId, status ->

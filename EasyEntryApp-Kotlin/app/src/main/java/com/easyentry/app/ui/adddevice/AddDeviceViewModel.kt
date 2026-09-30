@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.easyentry.app.data.remote.api.EspApi
 import com.easyentry.app.data.repository.DeviceGroupRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,6 +56,9 @@ class AddDeviceViewModel @Inject constructor(
             val name = try {
                 val status = espApi.getStatus("http://${url.trim()}/")
                 status.name.ifBlank { url.trim() }
+            } catch (ce: CancellationException) {
+                // Abbruch ist kein Geraete-Fehler und darf nicht als unerreichbar gelten.
+                throw ce
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = "URL nicht erreichbar!") }
                 return@launch
