@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.easyentry.app.R
 import com.easyentry.app.domain.model.Device
 import com.easyentry.app.domain.model.DeviceStatus
+import com.easyentry.app.domain.model.Reachability
 import com.easyentry.app.ui.theme.DoorClose
 import com.easyentry.app.ui.theme.DoorOpen
 import com.easyentry.app.ui.theme.DoorStop
@@ -52,7 +53,7 @@ import com.easyentry.app.ui.theme.Online
 @Composable
 fun DeviceCard(
     device: Device,
-    isOnline: Boolean,
+    reachability: Reachability,
     loadingActions: Set<DeviceStatus>,
     onControl: (DeviceStatus) -> Unit,
     onMoveToGroup: () -> Unit,
@@ -137,6 +138,10 @@ fun DeviceCard(
         },
         modifier = modifier.fillMaxWidth()
     ) {
+        // UNKNOWN heisst "noch nicht geprueft" und darf nicht wie ein Fehler aussehen.
+        // Erst ein abgeschlossener Probe mit allen Fehlversuchen faerbt die Karte offline.
+        val isOnline = reachability == Reachability.ONLINE
+
         OutlinedCard(
             modifier = Modifier.fillMaxWidth(),
             border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
@@ -156,11 +161,12 @@ fun DeviceCard(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = if (isOnline) {
-                                if (device.isOpened) stringResource(R.string.status_open)
-                                else stringResource(R.string.status_closed)
-                            } else {
-                                stringResource(R.string.device_unreachable)
+                            text = when (reachability) {
+                                Reachability.ONLINE ->
+                                    if (device.isOpened) stringResource(R.string.status_open)
+                                    else stringResource(R.string.status_closed)
+                                Reachability.OFFLINE -> stringResource(R.string.device_unreachable)
+                                Reachability.UNKNOWN -> stringResource(R.string.device_checking)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant

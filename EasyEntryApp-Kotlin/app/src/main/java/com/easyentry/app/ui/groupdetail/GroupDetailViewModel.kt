@@ -3,21 +3,28 @@ package com.easyentry.app.ui.groupdetail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.easyentry.app.data.remote.ProbeTarget
 import com.easyentry.app.data.remote.api.EspApi
 import com.easyentry.app.data.remote.dto.EspControlDto
 import com.easyentry.app.data.repository.DeviceGroupRepository
+import com.easyentry.app.data.repository.DeviceReachabilityRepository
 import com.easyentry.app.data.repository.SettingRepository
 import com.easyentry.app.domain.model.Device
 import com.easyentry.app.domain.model.DeviceGroup
 import com.easyentry.app.domain.model.DeviceStatus
+import com.easyentry.app.domain.model.ReachabilityEntry
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,6 +32,7 @@ import javax.inject.Inject
 @HiltViewModel
 class GroupDetailViewModel @Inject constructor(
     private val deviceGroupRepository: DeviceGroupRepository,
+    private val reachabilityRepository: DeviceReachabilityRepository,
     private val settingRepository: SettingRepository,
     private val espApi: EspApi,
     savedStateHandle: SavedStateHandle
@@ -35,10 +43,9 @@ class GroupDetailViewModel @Inject constructor(
     data class UiState(
         val group: DeviceGroup? = null,
         val allGroups: List<DeviceGroup> = emptyList(),
-        val deviceOnlineStatus: Map<Int, Boolean> = emptyMap(),
+        val deviceReachability: Map<Int, ReachabilityEntry> = emptyMap(),
         val loadingButtons: Map<Int, DeviceStatus?> = emptyMap(),
         val batchLoadingAction: DeviceStatus? = null,
-        val showSnackBar: Boolean = true,
         val snackbarMessage: String? = null,
         val showMoveSheet: Boolean = false,
         val moveDeviceId: Int? = null,
@@ -47,61 +54,55 @@ class GroupDetailViewModel @Inject constructor(
         val isRefreshing: Boolean = false,
     )
 
-    private val _uiState = MutableStateFlow(UiState())
-    val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+    /** Reiner UI-Zustand, getrennt von den Repository-Flows. */
+    private data class LocalState(
+        val loadingButtons: Map<Int, DeviceStatus?> = emptyMap(),
+        val batchLoadingAction: DeviceStatus? = null,
+        val snackbarMessage: String? = null,
+        val showMoveSheet: Boolean = false,
+        val moveDeviceId: Int? = null,
+        val showDeleteDeviceDialog: Boolean = false,
+        val deleteDeviceId: Int? = null,
+        val isRefreshing: Boolean = false,
+    )
 
-    init {
-        observeGroup()
-        observeSettings()
-    }
+    private val localState = MutableStateFlow(LocalState())
 
-    private fun observeGroup() {
-        viewModelScope.launch {
-            deviceGroupRepository.getGroupsWithDevices().collect { groups ->
-                val group = groups.firstOrNull { it.id == groupId }
-                _uiState.update { it.copy(group = group, allGroups = groups) }
-                group?.let { probeAllDevices(it.devices) }
-            }
-        }
-    }
-
-    private fun observeSettings() {
-        viewModelScope.launch {
-            settingRepository.showSnackBar.collect { show ->
-                _uiState.update { it.copy(showSnackBar = show) }
-            }
-        }
-    }
-
-    private fun probeAllDevices(devices: List<Device>) {
-        viewModelScope.launch {
-            val results = devices.map { device ->
-                async {
-                    val isOnline = testConnection(device.deviceUrl)
-                    device.id to isOnline
-                }
-            }.awaitAll()
-            _uiState.update { state ->
-                state.copy(deviceOnlineStatus = results.toMap())
-            }
-        }
-    }
+    val uiState: StateFlow<UiState> = combine(
+        deviceGroupRepository.getGroupsWithDevices(),
+        reachabilityRepository.status,
+        localState,
+    ) { groups, reachability, local ->
+        UiState(
+            group = groups.firstOrNull { it.id == groupId },
+            allGroups = groups,
+            deviceReachability = reachability,
+            loadingButtons = local.loadingButtons,
+            batchLoadingAction = local.batchLoadingAction,
+            snackbarMessage = local.snackbarMessage,
+            showMoveSheet = local.showMoveSheet,
+            moveDeviceId = local.moveDeviceId,
+            showDeleteDeviceDialog = local.showDeleteDeviceDialog,
+            deleteDeviceId = local.deleteDeviceId,
+            isRefreshing = local.isRefreshing,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
 
     fun onControlButton(device: Device, status: DeviceStatus) {
         viewModelScope.launch {
-            _uiState.update { state ->
-                state.copy(loadingButtons = state.loadingButtons + (device.id to status))
-            }
+            localState.update { it.copy(loadingButtons = it.loadingButtons + (device.id to status)) }
 
             val url = "http://${device.deviceUrl}/"
             val success = try {
                 espApi.controlDoor(url, EspControlDto(status.value))
                 true
+            } catch (ce: CancellationException) {
+                throw ce
             } catch (e: Exception) {
                 false
             }
 
-            if (_uiState.value.showSnackBar) {
+            if (settingRepository.showSnackBar.first()) {
                 val message = when {
                     success && status == DeviceStatus.OPENED  -> "Tor wurde erfolgreich geöffnet"
                     !success && status == DeviceStatus.OPENED -> "Fehler beim öffnen des Tors"
@@ -110,40 +111,39 @@ class GroupDetailViewModel @Inject constructor(
                     success && status == DeviceStatus.NEUTRAL -> "Tor wurde erfolgreich gestoppt"
                     else                                      -> "Fehler beim stoppen des Tors"
                 }
-                _uiState.update { it.copy(snackbarMessage = message) }
+                localState.update { it.copy(snackbarMessage = message) }
             }
 
             delay(4_000)
 
-            val isOnline = testConnection(device.deviceUrl)
-            _uiState.update { state ->
-                state.copy(
-                    loadingButtons = state.loadingButtons - device.id,
-                    deviceOnlineStatus = state.deviceOnlineStatus + (device.id to isOnline)
-                )
-            }
+            reachabilityRepository.refreshOne(ProbeTarget(device.id, device.deviceUrl))
+            localState.update { it.copy(loadingButtons = it.loadingButtons - device.id) }
         }
     }
 
     fun onBatchControl(status: DeviceStatus) {
-        val devices = _uiState.value.group?.devices ?: return
+        val devices = uiState.value.group?.devices ?: return
         if (devices.isEmpty()) return
 
         viewModelScope.launch {
-            _uiState.update { it.copy(batchLoadingAction = status) }
+            localState.update { it.copy(batchLoadingAction = status) }
 
-            val results: List<Boolean> = devices.map { device ->
-                async {
-                    try {
-                        espApi.controlDoor("http://${device.deviceUrl}/", EspControlDto(status.value))
-                        true
-                    } catch (e: Exception) {
-                        false
+            val results: List<Boolean> = coroutineScope {
+                devices.map { device ->
+                    async {
+                        try {
+                            espApi.controlDoor("http://${device.deviceUrl}/", EspControlDto(status.value))
+                            true
+                        } catch (ce: CancellationException) {
+                            throw ce
+                        } catch (e: Exception) {
+                            false
+                        }
                     }
-                }
-            }.awaitAll()
+                }.awaitAll()
+            }
 
-            if (_uiState.value.showSnackBar) {
+            if (settingRepository.showSnackBar.first()) {
                 val successCount = results.count { it }
                 val total = devices.size
                 val actionWord = when (status) {
@@ -156,56 +156,42 @@ class GroupDetailViewModel @Inject constructor(
                 } else {
                     "$successCount von $total Geräten erfolgreich $actionWord"
                 }
-                _uiState.update { it.copy(snackbarMessage = message) }
+                localState.update { it.copy(snackbarMessage = message) }
             }
 
             delay(4_000)
 
-            val probeResults = devices.map { device ->
-                async {
-                    val isOnline = testConnection(device.deviceUrl)
-                    device.id to isOnline
+            coroutineScope {
+                devices.forEach { device ->
+                    launch { reachabilityRepository.refreshOne(ProbeTarget(device.id, device.deviceUrl)) }
                 }
-            }.awaitAll()
-
-            _uiState.update { state ->
-                state.copy(
-                    batchLoadingAction = null,
-                    deviceOnlineStatus = state.deviceOnlineStatus + probeResults.toMap()
-                )
             }
+
+            localState.update { it.copy(batchLoadingAction = null) }
         }
     }
 
     fun reload() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshing = true) }
-            val groups = deviceGroupRepository.getGroupsWithDevices().first()
-            val group = groups.firstOrNull { it.id == groupId }
-            if (group != null) {
-                val results = group.devices.map { device ->
-                    async {
-                        val isOnline = testConnection(device.deviceUrl)
-                        device.id to isOnline
-                    }
-                }.awaitAll()
-                _uiState.update { it.copy(deviceOnlineStatus = results.toMap(), isRefreshing = false) }
-            } else {
-                _uiState.update { it.copy(isRefreshing = false) }
+            localState.update { it.copy(isRefreshing = true) }
+            try {
+                reachabilityRepository.refreshNow()
+            } finally {
+                localState.update { it.copy(isRefreshing = false) }
             }
         }
     }
 
     fun snackbarShown() {
-        _uiState.update { it.copy(snackbarMessage = null) }
+        localState.update { it.copy(snackbarMessage = null) }
     }
 
     fun showMoveDeviceSheet(deviceId: Int) {
-        _uiState.update { it.copy(showMoveSheet = true, moveDeviceId = deviceId) }
+        localState.update { it.copy(showMoveSheet = true, moveDeviceId = deviceId) }
     }
 
     fun hideMoveDeviceSheet() {
-        _uiState.update { it.copy(showMoveSheet = false, moveDeviceId = null) }
+        localState.update { it.copy(showMoveSheet = false, moveDeviceId = null) }
     }
 
     fun moveDevice(deviceId: Int, newGroupId: Int) {
@@ -216,11 +202,11 @@ class GroupDetailViewModel @Inject constructor(
     }
 
     fun showDeleteDeviceDialog(deviceId: Int) {
-        _uiState.update { it.copy(showDeleteDeviceDialog = true, deleteDeviceId = deviceId) }
+        localState.update { it.copy(showDeleteDeviceDialog = true, deleteDeviceId = deviceId) }
     }
 
     fun hideDeleteDeviceDialog() {
-        _uiState.update { it.copy(showDeleteDeviceDialog = false, deleteDeviceId = null) }
+        localState.update { it.copy(showDeleteDeviceDialog = false, deleteDeviceId = null) }
     }
 
     fun deleteDevice(deviceId: Int) {
@@ -234,12 +220,5 @@ class GroupDetailViewModel @Inject constructor(
         viewModelScope.launch {
             deviceGroupRepository.reorderDevices(orderedDeviceIds)
         }
-    }
-
-    private suspend fun testConnection(deviceUrl: String): Boolean = try {
-        espApi.getStatus("http://$deviceUrl/")
-        true
-    } catch (e: Exception) {
-        false
     }
 }

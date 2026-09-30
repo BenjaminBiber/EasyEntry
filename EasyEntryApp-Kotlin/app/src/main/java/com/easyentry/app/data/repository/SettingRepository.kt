@@ -11,7 +11,13 @@ class SettingRepository @Inject constructor(
 ) {
     val showSnackBar: Flow<Boolean> = settingsDataStore.showSnackBar
 
+    val networkDebugLog: Flow<Boolean> = settingsDataStore.networkDebugLog
+
     suspend fun setShowSnackBar(value: Boolean) {
         settingsDataStore.setShowSnackBar(value)
+    }
+
+    suspend fun setNetworkDebugLog(value: Boolean) {
+        settingsDataStore.setNetworkDebugLog(value)
     }
 }

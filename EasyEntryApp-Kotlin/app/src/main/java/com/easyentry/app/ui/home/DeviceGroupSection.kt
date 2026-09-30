@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import com.easyentry.app.domain.model.Device
 import com.easyentry.app.domain.model.DeviceGroup
 import com.easyentry.app.domain.model.DeviceStatus
+import com.easyentry.app.domain.model.Reachability
+import com.easyentry.app.domain.model.ReachabilityEntry
 import sh.calvin.reorderable.ReorderableColumn
 import sh.calvin.reorderable.ReorderableItem
 
@@ -38,7 +40,7 @@ import sh.calvin.reorderable.ReorderableItem
 fun DeviceGroupSection(
     group: DeviceGroup,
     isExpanded: Boolean,
-    deviceOnlineStatus: Map<Int, Boolean>,
+    deviceReachability: Map<Int, ReachabilityEntry>,
     loadingDeviceActions: Set<Pair<Int, DeviceStatus>>,
     onToggle: () -> Unit,
     onControl: (deviceId: Int, status: DeviceStatus) -> Unit,
@@ -103,7 +105,7 @@ fun DeviceGroupSection(
                             )
                             DeviceCard(
                                 device = device,
-                                isOnline = deviceOnlineStatus[device.id] ?: false,
+                                reachability = deviceReachability[device.id]?.state ?: Reachability.UNKNOWN,
                                 loadingActions = loadingDeviceActions.filter { it.first == device.id }.map { it.second }.toSet(),
                                 onControl = { status -> onControl(device.id, status) },
                                 onMoveToGroup = { onMoveToGroup(device.id) },

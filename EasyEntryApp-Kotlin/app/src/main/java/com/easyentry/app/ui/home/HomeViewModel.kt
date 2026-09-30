@@ -2,21 +2,25 @@ package com.easyentry.app.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.easyentry.app.data.remote.ProbeTarget
 import com.easyentry.app.data.remote.api.EspApi
 import com.easyentry.app.data.remote.dto.EspControlDto
 import com.easyentry.app.data.repository.DeviceGroupRepository
+import com.easyentry.app.data.repository.DeviceReachabilityRepository
 import com.easyentry.app.data.repository.SettingRepository
 import com.easyentry.app.domain.model.Device
 import com.easyentry.app.domain.model.DeviceGroup
 import com.easyentry.app.domain.model.DeviceStatus
+import com.easyentry.app.domain.model.ReachabilityEntry
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -24,6 +28,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val deviceGroupRepository: DeviceGroupRepository,
+    private val reachabilityRepository: DeviceReachabilityRepository,
     private val settingRepository: SettingRepository,
     private val espApi: EspApi
 ) : ViewModel() {
@@ -31,74 +36,63 @@ class HomeViewModel @Inject constructor(
     data class UiState(
         val groups: List<DeviceGroup> = emptyList(),
         val expandedGroups: Set<Int> = emptySet(),
-        val deviceOnlineStatus: Map<Int, Boolean> = emptyMap(),
+        val deviceReachability: Map<Int, ReachabilityEntry> = emptyMap(),
         val loadingDeviceActions: Set<Pair<Int, DeviceStatus>> = emptySet(),
-        val showSnackBar: Boolean = true,
         val snackbarMessage: String? = null,
         val showMoveSheet: Boolean = false,
         val moveDeviceId: Int? = null,
     )
 
-    private val _uiState = MutableStateFlow(UiState())
-    val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+    /**
+     * Reiner UI-Zustand, getrennt von den Repository-Flows.
+     *
+     * [collapsedGroups] haelt bewusst die zugeklappten Gruppen statt der aufgeklappten: so
+     * bleibt die Auswahl des Nutzers ueber jede Datenbank-Emission hinweg erhalten, und neue
+     * Gruppen sind automatisch aufgeklappt. Vorher wurde die Auswahl bei jeder Emission
+     * ueberschrieben, wodurch ein Reorder alle zugeklappten Gruppen wieder aufriss.
+     */
+    private data class LocalState(
+        val collapsedGroups: Set<Int> = emptySet(),
+        val loadingDeviceActions: Set<Pair<Int, DeviceStatus>> = emptySet(),
+        val snackbarMessage: String? = null,
+        val showMoveSheet: Boolean = false,
+        val moveDeviceId: Int? = null,
+    )
 
-    init {
-        observeGroups()
-        observeSettings()
-    }
+    private val localState = MutableStateFlow(LocalState())
 
-    private fun observeGroups() {
-        viewModelScope.launch {
-            deviceGroupRepository.getGroupsWithDevices().collect { groups ->
-                _uiState.update { state ->
-                    state.copy(
-                        groups = groups,
-                        expandedGroups = groups.map { it.id }.toSet()
-                    )
-                }
-                probeAllDevices(groups.flatMap { it.devices })
-            }
-        }
-    }
-
-    private fun observeSettings() {
-        viewModelScope.launch {
-            settingRepository.showSnackBar.collect { show ->
-                _uiState.update { it.copy(showSnackBar = show) }
-            }
-        }
-    }
-
-    private fun probeAllDevices(devices: List<Device>) {
-        viewModelScope.launch {
-            val results = devices.map { device ->
-                async {
-                    val isOnline = testConnection(device.deviceUrl)
-                    device.id to isOnline
-                }
-            }.awaitAll()
-            _uiState.update { state ->
-                state.copy(deviceOnlineStatus = results.toMap())
-            }
-        }
-    }
+    val uiState: StateFlow<UiState> = combine(
+        deviceGroupRepository.getGroupsWithDevices(),
+        reachabilityRepository.status,
+        localState,
+    ) { groups, reachability, local ->
+        UiState(
+            groups = groups,
+            expandedGroups = groups.map { it.id }.toSet() - local.collapsedGroups,
+            deviceReachability = reachability,
+            loadingDeviceActions = local.loadingDeviceActions,
+            snackbarMessage = local.snackbarMessage,
+            showMoveSheet = local.showMoveSheet,
+            moveDeviceId = local.moveDeviceId,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
 
     fun onControlButton(device: Device, status: DeviceStatus) {
         viewModelScope.launch {
             val key = device.id to status
-            _uiState.update { state ->
-                state.copy(loadingDeviceActions = state.loadingDeviceActions + key)
-            }
+            localState.update { it.copy(loadingDeviceActions = it.loadingDeviceActions + key) }
 
             val url = "http://${device.deviceUrl}/"
             val success = try {
                 espApi.controlDoor(url, EspControlDto(status.value))
                 true
+            } catch (ce: CancellationException) {
+                throw ce
             } catch (e: Exception) {
                 false
             }
 
-            if (_uiState.value.showSnackBar) {
+            if (settingRepository.showSnackBar.first()) {
                 val message = when {
                     success && status == DeviceStatus.OPENED  -> "Tor wurde erfolgreich geöffnet"
                     !success && status == DeviceStatus.OPENED -> "Fehler beim öffnen des Tors"
@@ -107,46 +101,38 @@ class HomeViewModel @Inject constructor(
                     success && status == DeviceStatus.NEUTRAL -> "Tor wurde erfolgreich gestoppt"
                     else                                      -> "Fehler beim stoppen des Tors"
                 }
-                _uiState.update { it.copy(snackbarMessage = message) }
+                localState.update { it.copy(snackbarMessage = message) }
             }
 
             delay(4_000)
 
-            val isOnline = testConnection(device.deviceUrl)
-            _uiState.update { state ->
-                state.copy(
-                    loadingDeviceActions = state.loadingDeviceActions - key,
-                    deviceOnlineStatus = state.deviceOnlineStatus + (device.id to isOnline)
-                )
-            }
+            reachabilityRepository.refreshOne(ProbeTarget(device.id, device.deviceUrl))
+            localState.update { it.copy(loadingDeviceActions = it.loadingDeviceActions - key) }
         }
     }
 
     fun toggleGroup(groupId: Int) {
-        _uiState.update { state ->
-            val set = state.expandedGroups.toMutableSet()
-            if (groupId in set) set.remove(groupId) else set.add(groupId)
-            state.copy(expandedGroups = set)
+        localState.update { state ->
+            val collapsed = state.collapsedGroups.toMutableSet()
+            if (groupId in collapsed) collapsed.remove(groupId) else collapsed.add(groupId)
+            state.copy(collapsedGroups = collapsed)
         }
     }
 
     fun reload() {
-        viewModelScope.launch {
-            val groups = deviceGroupRepository.getGroupsWithDevices().first()
-            probeAllDevices(groups.flatMap { it.devices })
-        }
+        viewModelScope.launch { reachabilityRepository.refreshNow() }
     }
 
     fun snackbarShown() {
-        _uiState.update { it.copy(snackbarMessage = null) }
+        localState.update { it.copy(snackbarMessage = null) }
     }
 
     fun showMoveDeviceSheet(deviceId: Int) {
-        _uiState.update { it.copy(showMoveSheet = true, moveDeviceId = deviceId) }
+        localState.update { it.copy(showMoveSheet = true, moveDeviceId = deviceId) }
     }
 
     fun hideMoveDeviceSheet() {
-        _uiState.update { it.copy(showMoveSheet = false, moveDeviceId = null) }
+        localState.update { it.copy(showMoveSheet = false, moveDeviceId = null) }
     }
 
     fun moveDevice(deviceId: Int, newGroupId: Int) {
@@ -160,12 +146,5 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             deviceGroupRepository.reorderDevices(orderedDeviceIds)
         }
-    }
-
-    private suspend fun testConnection(deviceUrl: String): Boolean = try {
-        espApi.getStatus("http://$deviceUrl/")
-        true
-    } catch (e: Exception) {
-        false
     }
 }

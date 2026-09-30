@@ -21,6 +21,15 @@
     <string name="door_stopped_success">Tor wurde erfolgreich gestoppt</string>
     <string name="door_stop_error">Fehler beim stoppen des Tors</string>
     <string name="device_unreachable">Gerät nicht erreichbar</string>
+    <string name="device_checking">Wird geprüft…</string>
+
+    <!-- Network diagnostics -->
+    <string name="settings_network_debug">Netzwerk-Diagnose</string>
+    <string name="settings_network_debug_desc">Protokolliert fehlgeschlagene Erreichbarkeitsprüfungen. Nur zur Fehlersuche einschalten.</string>
+    <string name="settings_probe_log">Probe-Protokoll</string>
+    <string name="settings_probe_log_desc">%1$d aufgezeichnete Fehlversuche</string>
+    <string name="share">Teilen</string>
+    <string name="clear">Leeren</string>
 
     <!-- Device status labels -->
     <string name="status_open">Offen</string>

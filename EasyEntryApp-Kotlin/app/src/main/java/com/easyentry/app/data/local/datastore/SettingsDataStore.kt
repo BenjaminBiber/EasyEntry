@@ -15,14 +15,25 @@ class SettingsDataStore @Inject constructor(
 ) {
     companion object {
         val SHOW_SNACKBAR = booleanPreferencesKey("show_snack_bar")
+        val NETWORK_DEBUG_LOG = booleanPreferencesKey("network_debug_log")
     }
 
     val showSnackBar: Flow<Boolean> = dataStore.data
         .map { preferences -> preferences[SHOW_SNACKBAR] ?: true }
 
+    /** Schaltet HTTP-Header-Logging und die Anzeige des Probe-Protokolls frei. */
+    val networkDebugLog: Flow<Boolean> = dataStore.data
+        .map { preferences -> preferences[NETWORK_DEBUG_LOG] ?: false }
+
     suspend fun setShowSnackBar(value: Boolean) {
         dataStore.edit { preferences ->
             preferences[SHOW_SNACKBAR] = value
+        }
+    }
+
+    suspend fun setNetworkDebugLog(value: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[NETWORK_DEBUG_LOG] = value
         }
     }
 }

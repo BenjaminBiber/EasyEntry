@@ -8,6 +8,7 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 import com.easyentry.app.data.remote.dto.EspControlDto
 import com.easyentry.app.domain.model.DeviceStatus
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.CancellationException
 
 class WidgetActionCallback : ActionCallback {
 
@@ -43,6 +44,9 @@ class WidgetActionCallback : ActionCallback {
         val success = try {
             espApi.controlDoor("http://${device.deviceUrl}/", EspControlDto(statusValue))
             true
+        } catch (ce: CancellationException) {
+            // Abbruch ist kein Geraete-Fehler; kein "Fehler" im Widget anzeigen.
+            throw ce
         } catch (e: Exception) {
             false
         }

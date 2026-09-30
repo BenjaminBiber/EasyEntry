@@ -9,6 +9,7 @@ import com.easyentry.app.data.local.db.ScheduledActionDao
 import com.easyentry.app.data.remote.api.EspApi
 import com.easyentry.app.data.remote.dto.EspControlDto
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -46,6 +47,10 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
                     val device = deviceDao.getById(id) ?: continue
                     try {
                         espApi.controlDoor("http://${device.deviceUrl}/", EspControlDto(action.actionStatusValue))
+                    } catch (ce: CancellationException) {
+                        // Abbruch ist kein Geräte-Fehler: nicht schlucken, sonst laufen die
+                        // restlichen Geräte in einem bereits abgebrochenen Scope weiter.
+                        throw ce
                     } catch (_: Exception) {
                         // Gerät nicht erreichbar — nächste Ausführung wie geplant
                     }

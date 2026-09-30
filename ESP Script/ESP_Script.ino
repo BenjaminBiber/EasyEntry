@@ -143,7 +143,10 @@ void connectToNetwork() {
 void handleGet() {
     StaticJsonDocument<200> jsonDoc;
 
-    jsonDoc["name"] = DeviceName;
+    // device.Name statt des Makros: sonst hatte handlePost() (Umbenennen über die App)
+    // keinerlei sichtbare Wirkung. Hinweis: der Name liegt nur im RAM und fällt nach einem
+    // Neustart auf DeviceName zurück -- für Persistenz wäre NVS/Preferences nötig.
+    jsonDoc["name"] = device.Name.length() > 0 ? device.Name : String(DeviceName);
     jsonDoc["IsOpen"] = digitalRead(GateRelay_PIN) == HIGH;
 
     // Serialisiere das Dokument in eine Zeichenkette
@@ -174,6 +177,21 @@ void handlePut() {
   int newStatus = jsonDoc["Status"].as<int>();
   device.Status = static_cast<DeviceStatus>(newStatus);
 
+  // Antwort ZUERST senden, Relais danach schalten.
+  // Begründung: server.handleClient() wird aus loop() aufgerufen und bedient strikt eine
+  // Verbindung zur Zeit. Das delay(100) im Relais-Puls blockierte die Loop, während die
+  // HTTP-Verbindung noch offen war -- in dieser Zeit wurde kein anderer Client bedient und
+  // parallele Erreichbarkeitsprüfungen liefen ins Timeout. Der Antwortinhalt hängt nicht
+  // vom Schaltvorgang ab, die Reihenfolge ist also gefahrlos tauschbar.
+  StaticJsonDocument<200> responseDoc;
+  responseDoc["ID"] = device.ID;
+  responseDoc["Name"] = device.Name;
+  responseDoc["Status"] = static_cast<int>(device.Status);
+
+  String response;
+  serializeJson(responseDoc, response);
+  server.send(200, "application/json", response);
+
   if (device.Status == opened) {
     digitalWrite(UpRELAY_PIN, LOW);
     delay(100);
@@ -187,15 +205,6 @@ void handlePut() {
     delay(100);
     digitalWrite(StopRELAY_PIN, LOW);
   }
-
-  StaticJsonDocument<200> responseDoc;
-  responseDoc["ID"] = device.ID;
-  responseDoc["Name"] = device.Name;
-  responseDoc["Status"] = static_cast<int>(device.Status);
-
-  String response;
-  serializeJson(responseDoc, response);
-  server.send(200, "application/json", response);
 }
 
 // POST-Handler: Ändert den Namen des Geräts
@@ -227,7 +236,10 @@ void setup() {
   pinMode(StopRELAY_PIN, OUTPUT);
   pinMode(UpRELAY_PIN, OUTPUT);
   pinMode(DownRELAY_PIN, OUTPUT);
-  pinMode(GateRelay_PIN, INPUT);
+  // INPUT_PULLDOWN statt INPUT: der Pin wird in handleGet() per digitalRead als "IsOpen"
+  // gemeldet. Ohne definierten Ruhepegel floatet er und der gemeldete Zustand kann Rauschen
+  // sein -- das erklärt sprunghaft wechselnde "Offen"/"Geschlossen"-Anzeigen.
+  pinMode(GateRelay_PIN, INPUT_PULLDOWN);
 
 
   digitalWrite(UpRELAY_PIN, HIGH);
@@ -239,9 +251,23 @@ void setup() {
   WiFi.setHostname(DeviceName);
   WiFi.mode(WIFI_STA);
 
+  device.Name = DeviceName;
+
   printDeviceInfo();
   printNetworks();
   connectToNetwork();
+
+  // WICHTIGSTE Änderung für die Erreichbarkeit: ohne dies läuft der ESP32 im
+  // Default-Modem-Sleep und lauscht nur im DTIM-Intervall. Der Access Point puffert Unicast
+  // dann bis zum nächsten Beacon (typisch ca. 300 ms) und verwirft Pakete auch ganz -- die
+  // Ursache dafür, dass Geräte sporadisch als nicht erreichbar galten und erst nach
+  // mehrfachem Neuladen erschienen. Kostet Strom (ca. 20 mA -> 100+ mA), bei netzbetriebener
+  // Torsteuerung irrelevant.
+  WiFi.setSleep(false);
+
+  // Falls `curl -v http://<ip>/` KEINEN "Connection: close"-Header zeigt, hier zusätzlich
+  // server.sendHeader("Connection", "close") in den Handlern setzen: dann hält der Server
+  // Keep-Alive-Verbindungen, die die App-Seite als veraltet vorfindet.
 
   server.on("/", HTTP_GET, handleGet);
   server.on("/", HTTP_PUT, handlePut);

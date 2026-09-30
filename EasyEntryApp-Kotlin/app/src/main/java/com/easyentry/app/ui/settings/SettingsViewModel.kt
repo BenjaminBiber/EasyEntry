@@ -2,6 +2,7 @@ package com.easyentry.app.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.easyentry.app.data.remote.ProbeDiagnostics
 import com.easyentry.app.data.repository.DeviceGroupRepository
 import com.easyentry.app.data.repository.SettingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,17 +17,34 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingRepository: SettingRepository,
-    private val deviceGroupRepository: DeviceGroupRepository
+    private val deviceGroupRepository: DeviceGroupRepository,
+    private val probeDiagnostics: ProbeDiagnostics
 ) : ViewModel() {
 
     val showSnackBar = settingRepository.showSnackBar
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    val networkDebugLog = settingRepository.networkDebugLog
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val probeEvents = probeDiagnostics.events
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun setShowSnackBar(value: Boolean) {
         viewModelScope.launch {
             settingRepository.setShowSnackBar(value)
         }
     }
+
+    fun setNetworkDebugLog(value: Boolean) {
+        viewModelScope.launch {
+            settingRepository.setNetworkDebugLog(value)
+        }
+    }
+
+    fun probeLogAsText(): String = probeDiagnostics.asShareText()
+
+    fun clearProbeLog() = probeDiagnostics.clear()
 
     private val _showResetDialog = MutableStateFlow(false)
     val showResetDialog: StateFlow<Boolean> = _showResetDialog.asStateFlow()
