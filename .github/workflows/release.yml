@@ -1,0 +1,132 @@
+name: Release
+
+# Manuell auslösen: Actions -> Release -> Run workflow.
+# Baut die signierte APK, setzt den Tag vX.Y.Z und veröffentlicht das GitHub-Release.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Versionssprung (patch: Fehlerbehebung, minor: neue Funktion, major: großer Umbruch)'
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      prerelease:
+        description: 'Als Vorabversion markieren'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Nie zwei Releases gleichzeitig: beide würden dieselbe nächste Version berechnen.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.next.outputs.version }}
+      version_code: ${{ steps.next.outputs.version_code }}
+      tag: ${{ steps.next.outputs.tag }}
+    steps:
+      - name: Nur von main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Releases werden nur von main erstellt, nicht von ${GITHUB_REF}"
+          exit 1
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # alle Tags, sonst findet next-version.sh die letzte Version nicht
+
+      - name: Nächste Version berechnen
+        id: next
+        env:
+          BUMP: ${{ inputs.bump }}
+        # Keine Pipe: Steps laufen ohne pipefail, ein Fehler des Skripts ginge sonst verloren.
+        run: |
+          .github/scripts/next-version.sh "$BUMP" >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
+  android:
+    needs: version
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: EasyEntryApp-Kotlin
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          java-version: '17'
+          distribution: temurin
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Keystore dekodieren
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+
+      # Tests zuerst: schlagen sie fehl, entsteht weder Tag noch Release.
+      - name: Tests und signierte Release-APK
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          VERSION_NAME: ${{ needs.version.outputs.version }}
+          VERSION_CODE: ${{ needs.version.outputs.version_code }}
+        run: ./gradlew :app:testDebugUnitTest :app:assembleRelease
+
+      - name: APK prüfen und benennen
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          apk=app/build/outputs/apk/release/app-release.apk
+          # Ohne Signing-Konfiguration entsteht nur app-release-unsigned.apk, die sich nicht
+          # installieren lässt.
+          if [[ ! -f "$apk" ]]; then
+            echo "::error::Keine signierte APK erzeugt. Signing-Secrets (KEYSTORE_*, KEY_*) prüfen."
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/dist"
+          cp "$apk" "$RUNNER_TEMP/dist/EasyEntry-$VERSION.apk"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: android-apk
+          path: ${{ runner.temp }}/dist/*.apk
+          if-no-files-found: error
+
+  # Eigener Job, damit Tag und Release erst entstehen, wenn alle Builds grün sind.
+  # Ein späterer iOS-Build kommt als weiterer Job dazu und wird hier in needs ergänzt.
+  release:
+    needs: [version, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: android-apk
+          path: dist
+
+      - name: GitHub-Release erstellen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.version.outputs.tag }}
+          VERSION: ${{ needs.version.outputs.version }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          flags=()
+          if [[ "$PRERELEASE" == "true" ]]; then flags+=(--prerelease); fi
+          gh release create "$TAG" dist/*.apk \
+            --target "$GITHUB_SHA" \
+            --title "EasyEntry $VERSION" \
+            --generate-notes \
+            "${flags[@]}"

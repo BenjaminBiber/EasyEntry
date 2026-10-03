@@ -28,7 +28,7 @@ Für die Schaltplatine müssen die einzelnen Komponenten auf das PCB gelötet we
 ![third Image](https://github.com/BenjaminBiber/EasyEntry/blob/main/Pictures/img5.jpg?raw=true)
 
 ### App
-Für die App muss das MAUI-Projekt für das jeweilige Betriebssystem veröffentlicht und dann auf dem Mobilgerät installiert werden. Danach kann in der App über das Plus-Symbol in der App-Leiste ein neues Gerät hinzugefügt werden (die vorher ausgelesene IP-Adresse wird hierfür benötigt).
+Die Android-App gibt es als fertige APK unter [Releases](https://github.com/BenjaminBiber/EasyEntry/releases/latest): `EasyEntry-<Version>.apk` auf dem Smartphone herunterladen und öffnen. Beim ersten Mal muss Android die Installation aus dieser Quelle (Browser bzw. Dateimanager) erlauben. Neue Versionen werden genauso über die bestehende App installiert. Danach kann in der App über das Plus-Symbol in der App-Leiste ein neues Gerät hinzugefügt werden (die vorher ausgelesene IP-Adresse wird hierfür benötigt).
 
 ![fourth Image](https://github.com/BenjaminBiber/EasyEntry/blob/main/Pictures/img8.png?raw=true)
 
@@ -39,3 +39,6 @@ Nun kann das Tor über die App auf, zu oder gestoppt werden. Über das Einstellu
 Falls mehrere Geräte gruppiert werden sollen, kann dies über die Gruppenverwaltung erfolgen, wo Geräte auch gelöscht werden können.
 
 ![sixth Image](https://github.com/BenjaminBiber/EasyEntry/blob/main/Pictures/img9.png?raw=true)
+
+## Neues Release erstellen
+Unter *Actions → Release → Run workflow* den Versionssprung wählen: `patch` für Fehlerbehebungen, `minor` für neue Funktionen, `major` für größere Umbrüche. Der Workflow führt die Unit-Tests aus, baut die signierte APK, setzt den Tag `vX.Y.Z` und veröffentlicht das Release mit automatisch erzeugten Release-Notes. Releases werden nur von `main` erstellt; mit *Als Vorabversion markieren* entsteht eine Vorabversion zum Testen.
