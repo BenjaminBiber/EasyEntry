@@ -1,7 +1,9 @@
 package com.easyentry.app.di
 
 import com.easyentry.app.BuildConfig
+import android.os.SystemClock
 import com.easyentry.app.data.remote.EspNetworkConfig
+import com.easyentry.app.data.remote.MonotonicClock
 import com.easyentry.app.data.remote.api.EspApi
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -44,6 +46,10 @@ object NetworkModule {
         probeAttempts = 3,
         backoffMs = longArrayOf(0, 300, 900),
     )
+
+    @Provides
+    @Singleton
+    fun provideMonotonicClock(): MonotonicClock = MonotonicClock { SystemClock.elapsedRealtime() }
 
     /**
      * Eigener Provider, damit das Level zur Laufzeit umschaltbar bleibt: der OkHttpClient ist

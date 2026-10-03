@@ -401,3 +401,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# ESP-Sketch: lokale Konfiguration mit WLAN-Zugangsdaten
+ESP Script/ESP_Script/config.h

@@ -3,8 +3,9 @@ package com.easyentry.app.data.remote
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,7 +24,10 @@ class ProbeDiagnostics @Inject constructor() {
 
     companion object {
         private const val CAPACITY = 200
-        private val TIME_FORMAT = SimpleDateFormat("HH:mm:ss.SSS", Locale.GERMANY)
+        // DateTimeFormatter statt SimpleDateFormat: format() laeuft ausserhalb des Locks und
+        // parallel aus mehreren Probes, SimpleDateFormat ist dafuer nicht thread-safe.
+        private val TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS", Locale.GERMANY)
+            .withZone(ZoneId.systemDefault())
     }
 
     data class ProbeEvent(
@@ -97,7 +101,7 @@ class ProbeDiagnostics @Inject constructor() {
     }
 
     private fun format(e: ProbeEvent): String = buildString {
-        append(TIME_FORMAT.format(Date(e.atMs)))
+        append(TIME_FORMAT.format(Instant.ofEpochMilli(e.atMs)))
         append(" | ").append(e.host)
         append(" | #").append(e.attempt)
         append(" | ").append(e.errorName)

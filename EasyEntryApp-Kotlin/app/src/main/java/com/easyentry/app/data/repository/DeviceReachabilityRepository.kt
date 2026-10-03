@@ -1,6 +1,7 @@
 package com.easyentry.app.data.repository
 
 import com.easyentry.app.data.remote.DeviceProbe
+import com.easyentry.app.data.remote.MonotonicClock
 import com.easyentry.app.data.remote.ProbeResult
 import com.easyentry.app.data.remote.ProbeTarget
 import com.easyentry.app.di.ApplicationScope
@@ -51,6 +52,7 @@ class DeviceReachabilityRepository @Inject constructor(
     deviceGroupRepository: DeviceGroupRepository,
     private val probe: DeviceProbe,
     @ApplicationScope private val scope: CoroutineScope,
+    private val clock: MonotonicClock,
 ) {
 
     private data class ProbeRequest(
@@ -76,6 +78,10 @@ class DeviceReachabilityRepository @Inject constructor(
         replay = 1,
         extraBufferCapacity = 1,
     )
+
+    /** true, solange eine Runde laeuft. Siehe [refreshIfStale]. */
+    @Volatile
+    private var roundRunning = false
 
     /** Letzter bekannter Stand, um einen URL-Wechsel eines Geraets zu erkennen. */
     private var lastUrlById: Map<Int, String> = emptyMap()
@@ -109,9 +115,13 @@ class DeviceReachabilityRepository @Inject constructor(
             targets.map { ProbeRequest(it) },
             manualRefresh.map { done -> ProbeRequest(targets.value, done) },
         ).mapLatest { request ->
+            // mapLatest wartet das Ende der abgebrochenen Runde ab, bevor es die neue startet:
+            // deren finally setzt das Flag also nie nach diesem true zurueck.
+            roundRunning = true
             try {
                 probeRound(request.targets)
             } finally {
+                roundRunning = false
                 // Auch bei Abbruch completen: ein ueberholtes Neuladen soll sofort
                 // zurueckkehren statt den Spinner haengen zu lassen.
                 request.completion?.complete(Unit)
@@ -133,10 +143,30 @@ class DeviceReachabilityRepository @Inject constructor(
         done.await()
     }
 
+    /**
+     * Fuer den Bildschirmstart: prueft neu, wenn ein Geraet noch nie oder vor mehr als
+     * [STALE_AFTER_MS] geprueft wurde. Der Cache lebt so lange wie der Prozess; ohne diesen
+     * Ausloeser zeigte die App beim Wiederoeffnen beliebig alte Ergebnisse, auch ein
+     * "nicht erreichbar" von unterwegs.
+     *
+     * Eine laufende Runde wird nicht ersetzt: sie liefert ohnehin frische Werte, und mapLatest
+     * wuerde ihre halb fertigen Pruefungen verwerfen.
+     */
+    fun refreshIfStale() {
+        if (roundRunning) return
+        val now = clock.nowMs()
+        val entries = cache.value
+        val stale = targets.value.any { target ->
+            val entry = entries[target.id]
+            entry == null || now - entry.checkedAtMs > STALE_AFTER_MS
+        }
+        // Niemand wartet auf das Ende, ein verworfenes tryEmit kostet also nur diese Pruefung.
+        if (stale) manualRefresh.tryEmit(CompletableDeferred())
+    }
+
     /** Einzelnes Geraet neu pruefen, etwa im Nachlauf eines Steuerbefehls. */
     suspend fun refreshOne(target: ProbeTarget) {
-        val startedAtMs = System.currentTimeMillis()
-        publish(target.id, probe.probe(target.url), startedAtMs)
+        publish(target.id, probe.probe(target.url))
     }
 
     private suspend fun probeRound(targets: Set<ProbeTarget>) {
@@ -144,10 +174,10 @@ class DeviceReachabilityRepository @Inject constructor(
         coroutineScope {
             targets.forEach { target ->
                 launch {
-                    val startedAtMs = System.currentTimeMillis()
+                    val calledAtMs = clock.nowMs()
                     try {
                         // Pro Geraet sofort veroeffentlichen statt am Rundenende gesammelt.
-                        publish(target.id, probe.probe(target.url), startedAtMs)
+                        publish(target.id, probe.probe(target.url))
                     } catch (ce: CancellationException) {
                         throw ce
                     } catch (e: Exception) {
@@ -156,8 +186,13 @@ class DeviceReachabilityRepository @Inject constructor(
                         android.util.Log.e(TAG, "Probe fehlgeschlagen: ${target.url}", e)
                         publish(
                             target.id,
-                            ProbeResult.Unreachable(e.javaClass.simpleName, attempts = 1),
-                            startedAtMs,
+                            ProbeResult.Unreachable(
+                                e.javaClass.simpleName,
+                                attempts = 1,
+                                // Ohne Lock-Zeitpunkt der Aufrufzeitpunkt: im Zweifel gilt das
+                                // Fehlerergebnis als aelter und verliert gegen ein echtes.
+                                startedAtMs = calledAtMs,
+                            ),
                         )
                     }
                 }
@@ -169,13 +204,15 @@ class DeviceReachabilityRepository @Inject constructor(
      * Schreibt ein Ergebnis, sofern nicht bereits ein juengeres vorliegt.
      *
      * Der Zeitstempel-Vergleich schuetzt gegen Schreiber ausserhalb der mapLatest-Pipeline,
-     * insbesondere [refreshOne] aus dem Nachlauf eines Steuerbefehls.
+     * insbesondere [refreshOne] aus dem Nachlauf eines Steuerbefehls. Verglichen wird mit
+     * [ProbeResult.startedAtMs], also ab Erhalt des Host-Locks: Pruefungen desselben Geraets
+     * laufen nacheinander, die spaeter gestartete ist damit immer die neuere.
      */
-    private fun publish(deviceId: Int, result: ProbeResult, startedAtMs: Long) {
-        val finishedAtMs = System.currentTimeMillis()
+    private fun publish(deviceId: Int, result: ProbeResult) {
+        val finishedAtMs = clock.nowMs()
         cache.update { old ->
             val existing = old[deviceId]
-            if (existing != null && existing.checkedAtMs > startedAtMs) {
+            if (existing != null && existing.checkedAtMs > result.startedAtMs) {
                 old
             } else {
                 old + (deviceId to ReachabilityEntry(
@@ -208,8 +245,9 @@ class DeviceReachabilityRepository @Inject constructor(
         }
     }
 
-    private companion object {
-        const val TAG = "DeviceReachability"
-        const val TARGET_DEBOUNCE_MS = 200L
+    companion object {
+        private const val TAG = "DeviceReachability"
+        private const val TARGET_DEBOUNCE_MS = 200L
+        internal const val STALE_AFTER_MS = 30_000L
     }
 }
