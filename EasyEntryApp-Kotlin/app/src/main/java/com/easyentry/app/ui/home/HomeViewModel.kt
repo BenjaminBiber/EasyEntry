@@ -2,6 +2,7 @@ package com.easyentry.app.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.easyentry.app.data.remote.NetworkMonitor
 import com.easyentry.app.data.remote.ProbeTarget
 import com.easyentry.app.data.remote.api.EspApi
 import com.easyentry.app.data.remote.dto.EspControlDto
@@ -29,6 +30,7 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val deviceGroupRepository: DeviceGroupRepository,
     private val reachabilityRepository: DeviceReachabilityRepository,
+    private val networkMonitor: NetworkMonitor,
     private val settingRepository: SettingRepository,
     private val espApi: EspApi
 ) : ViewModel() {
@@ -121,6 +123,15 @@ class HomeViewModel @Inject constructor(
 
     fun reload() {
         viewModelScope.launch { reachabilityRepository.refreshNow() }
+    }
+
+    /**
+     * Laeuft, solange der Bildschirm sichtbar ist: frischt veraltete Ergebnisse auf und prueft
+     * nach einem Netzwechsel neu, etwa wenn das Telefon beim Heimkommen ins WLAN wechselt.
+     */
+    suspend fun keepReachabilityFresh() {
+        reachabilityRepository.refreshIfStale()
+        networkMonitor.defaultNetworkChanges.collect { reachabilityRepository.refreshNow() }
     }
 
     fun snackbarShown() {

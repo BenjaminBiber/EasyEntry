@@ -56,6 +56,11 @@ android {
         compose = true
         buildConfig = true
     }
+
+    testOptions {
+        // android.util.Log & Co. liefern in JVM-Tests Defaultwerte statt eine Exception zu werfen.
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -93,4 +98,7 @@ dependencies {
 
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.coroutines.test)
 }

@@ -8,7 +8,10 @@ enum class Reachability { UNKNOWN, ONLINE, OFFLINE }
 
 data class ReachabilityEntry(
     val state: Reachability,
-    /** Zeitpunkt, zu dem dieses Ergebnis entstand — Basis für den Veraltungs-Schutz. */
+    /**
+     * Zeitpunkt, zu dem dieses Ergebnis entstand — Basis für den Veraltungs-Schutz und das
+     * Alter in refreshIfStale. Monotone Uhr (elapsedRealtime), keine Wanduhrzeit.
+     */
     val checkedAtMs: Long,
     /** Klassenname der letzten Exception, nur zur Diagnose. */
     val lastErrorName: String? = null,

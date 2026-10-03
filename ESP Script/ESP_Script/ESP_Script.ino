@@ -2,15 +2,23 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
+#include <ArduinoOTA.h>
 
-// Netzwerkanmeldeinformationen
-#define WIFI_SSID "SSID"
-#define WIFI_PASSWORD "Password"
+// WLAN-Zugangsdaten, Geraetename und OTA-Passwort stehen in config.h (nicht eingecheckt).
+#if __has_include("config.h")
+#include "config.h"
+#else
+#error "config.h fehlt: config.example.h nach config.h kopieren und Werte eintragen"
+#endif
+
+#ifndef OTA_PASSWORD
+#error "OTA_PASSWORD fehlt in config.h (siehe config.example.h)"
+#endif
+
 #define StopRELAY_PIN 21 // ESP32 pin GPIO15 connected to the IN pin of relay
 #define UpRELAY_PIN 19 // ESP32 pin GPIO16 connected to the IN pin of relay
 #define DownRELAY_PIN 3 // ESPß32 pin GPIO17 connected to the IN pin of relay
 #define GateRelay_PIN 18
-#define DeviceName "DeviceName"
 
 enum DeviceStatus {
   opened = 1,
@@ -229,6 +237,24 @@ void handlePost() {
   server.send(200, "text/plain", "Device name updated successfully");
 }
 
+// Firmware-Updates über WLAN: der ESP erscheint in der Arduino IDE unter Tools -> Port als
+// Netzwerk-Port, beim Upload wird OTA_PASSWORD abgefragt. Ohne Passwort könnte jeder im WLAN
+// eine Firmware aufspielen, die das Tor öffnet.
+void setupOta() {
+  // mDNS-Hostnamen dürfen keine Leerzeichen enthalten ("Tor 1" -> "Tor-1").
+  String hostname = DeviceName;
+  hostname.replace(" ", "-");
+  ArduinoOTA.setHostname(hostname.c_str());
+  ArduinoOTA.setPassword(OTA_PASSWORD);
+  ArduinoOTA.onStart([]() { Serial.println("OTA-Update gestartet"); });
+  ArduinoOTA.onEnd([]() { Serial.println("OTA-Update fertig, starte neu"); });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.print("OTA-Fehler: ");
+    Serial.println(error);
+  });
+  ArduinoOTA.begin();
+}
+
 void setup() {
   Serial.begin(115200);
   delay(3000);
@@ -274,8 +300,10 @@ void setup() {
   server.on("/", HTTP_POST, handlePost);
 
   server.begin();
+  setupOta();
 }
 
 void loop() {
   server.handleClient();
+  ArduinoOTA.handle();
 }

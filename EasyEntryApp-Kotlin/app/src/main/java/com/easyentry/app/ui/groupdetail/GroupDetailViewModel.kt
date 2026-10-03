@@ -3,6 +3,7 @@ package com.easyentry.app.ui.groupdetail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.easyentry.app.data.remote.NetworkMonitor
 import com.easyentry.app.data.remote.ProbeTarget
 import com.easyentry.app.data.remote.api.EspApi
 import com.easyentry.app.data.remote.dto.EspControlDto
@@ -33,6 +34,7 @@ import javax.inject.Inject
 class GroupDetailViewModel @Inject constructor(
     private val deviceGroupRepository: DeviceGroupRepository,
     private val reachabilityRepository: DeviceReachabilityRepository,
+    private val networkMonitor: NetworkMonitor,
     private val settingRepository: SettingRepository,
     private val espApi: EspApi,
     savedStateHandle: SavedStateHandle
@@ -180,6 +182,15 @@ class GroupDetailViewModel @Inject constructor(
                 localState.update { it.copy(isRefreshing = false) }
             }
         }
+    }
+
+    /**
+     * Laeuft, solange der Bildschirm sichtbar ist: frischt veraltete Ergebnisse auf und prueft
+     * nach einem Netzwechsel neu, etwa wenn das Telefon beim Heimkommen ins WLAN wechselt.
+     */
+    suspend fun keepReachabilityFresh() {
+        reachabilityRepository.refreshIfStale()
+        networkMonitor.defaultNetworkChanges.collect { reachabilityRepository.refreshNow() }
     }
 
     fun snackbarShown() {
