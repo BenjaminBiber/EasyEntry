@@ -404,3 +404,7 @@ FodyWeavers.xsd
 
 # ESP-Sketch: lokale Konfiguration mit WLAN-Zugangsdaten
 ESP Script/ESP_Script/config.h
+
+# Signaturschluessel: nie einchecken, in CI kommt er aus dem Secret KEYSTORE_BASE64
+*.jks
+*.keystore
